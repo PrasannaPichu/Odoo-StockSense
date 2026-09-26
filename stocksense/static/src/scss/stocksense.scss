@@ -48,10 +48,13 @@
 .stocksense-dashboard {
   background: var(--ss-bg);
   color: var(--ss-text-primary);
-  padding: 24px;
-  min-height: 100vh;
+  padding: 20px 24px;
+  min-height: 100%;
+  height: auto;
+  overflow-y: visible;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.5;
+  box-sizing: border-box;
 }
 
 /* Header & Controls */
@@ -989,15 +992,19 @@
   color: #fff;
 }
 
-/* Split Bento Grid (Col 7 / Col 5) */
+/* Split Bento Grid (Col 7 / Col 5) with responsive collapse and zero min-width */
 .ss-bento-split-grid {
   display: grid;
-  grid-template-columns: 7fr 5fr;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
   gap: 16px;
   margin-top: 18px;
 }
 
-@media (max-width: 1100px) {
+.ss-bento-split-grid > * {
+  min-width: 0;
+}
+
+@media (max-width: 1140px) {
   .ss-bento-split-grid {
     grid-template-columns: 1fr;
   }
@@ -1006,14 +1013,18 @@
 /* Movement Velocity & Invariant Tracker */
 .ss-velocity-matrix {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 14px;
 }
 
+.ss-velocity-matrix > * {
+  min-width: 0;
+}
+
 @media (max-width: 600px) {
   .ss-velocity-matrix {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1194,14 +1205,19 @@
 }
 
 /* Level 1: Primary Inventory Health Hero & Operational Focus Grid */
+/* Level 1: Primary Inventory Health Hero & Operational Focus Grid */
 .ss-hero-grid {
   display: grid;
-  grid-template-columns: 1.35fr 1fr;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
   gap: 16px;
   margin-bottom: 20px;
 }
 
-@media (max-width: 1050px) {
+.ss-hero-grid > * {
+  min-width: 0;
+}
+
+@media (max-width: 1024px) {
   .ss-hero-grid {
     grid-template-columns: 1fr;
   }
@@ -1211,12 +1227,13 @@
   background: var(--ss-surface);
   border: 1px solid var(--ss-border);
   border-radius: var(--ss-radius-md);
-  padding: 20px;
+  padding: 18px 20px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: 14px;
   position: relative;
-  overflow: hidden;
+  min-width: 0;
+  box-sizing: border-box;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
 
@@ -1234,7 +1251,8 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .ss-hero-title {
@@ -1243,6 +1261,7 @@
   color: #ffffff;
   display: flex;
   align-items: center;
+  gap: 6px;
 }
 
 .ss-hero-subtitle {
@@ -1256,13 +1275,14 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  margin-bottom: 14px;
-  padding-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .ss-hero-metric-val {
-  font-size: 38px;
+  font-size: 36px;
   font-weight: 800;
   line-height: 1;
   font-family: var(--ss-font-mono);
@@ -1294,7 +1314,7 @@
 }
 
 .ss-health-dist-box {
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .ss-health-chips-row {
@@ -1325,8 +1345,8 @@
 }
 
 .ss-hero-footer {
-  margin-top: 14px;
-  padding-top: 12px;
+  margin-top: auto;
+  padding-top: 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -1341,9 +1361,11 @@
 .ss-op-focus-item {
   background: rgba(11, 15, 25, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.06);
+  border-left: 3px solid var(--ss-danger);
   border-radius: 8px;
   padding: 10px 12px;
   transition: all 0.15s ease;
+  min-width: 0;
 }
 
 .ss-op-focus-item:hover {
@@ -1355,6 +1377,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   margin-bottom: 4px;
 }
 
@@ -1362,6 +1385,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .ss-op-focus-stock {
@@ -1372,41 +1397,51 @@
   font-size: 11px;
   color: #fbbf24;
   margin-top: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  word-break: break-word;
 }
 
 /* Level 1.5: Secondary Metrics Bar (Sleek Compact Strip) */
 .ss-secondary-metrics-bar {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 20px;
 }
 
+.ss-secondary-metrics-bar > * {
+  min-width: 0;
+}
+
 @media (max-width: 1200px) {
   .ss-secondary-metrics-bar {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 680px) {
   .ss-secondary-metrics-bar {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 440px) {
+  .ss-secondary-metrics-bar {
+    grid-template-columns: 1fr;
   }
 }
 
 .ss-sec-metric-item {
-  background: var(--ss-surface);
+  background: rgba(21, 30, 50, 0.6);
   border: 1px solid var(--ss-border);
   border-radius: var(--ss-radius-sm);
-  padding: 10px 14px;
+  padding: 8px 12px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   cursor: pointer;
   transition: all 0.15s ease;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .ss-sec-metric-item:hover {
@@ -1416,13 +1451,13 @@
 }
 
 .ss-sec-metric-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 13px;
   flex-shrink: 0;
 }
 
@@ -1434,7 +1469,7 @@
 .ss-sec-metric-icon.purple { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
 
 .ss-sec-metric-val {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 800;
   line-height: 1.1;
   color: #ffffff;
@@ -1442,33 +1477,152 @@
 }
 
 .ss-sec-metric-label {
-  font-size: 10.5px;
+  font-size: 10px;
   color: var(--ss-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Compact Activity Feed */
-.ss-compact-activity-list {
+/* Products Requiring Attention: Operational Risk Card Stack */
+.ss-attention-card-stack {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
 }
 
-.ss-compact-activity-row {
+.ss-attention-card {
+  background: rgba(11, 15, 25, 0.65);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius-sm);
+  padding: 12px 14px;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ss-attention-card:hover {
+  border-color: var(--ss-border-light);
+  background: rgba(21, 30, 50, 0.8);
+  transform: translateY(-1px);
+}
+
+.ss-attention-card.critical {
+  border-left: 4px solid var(--ss-danger);
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.08) 0%, rgba(11, 15, 25, 0.65) 100%);
+}
+
+.ss-attention-card.attention {
+  border-left: 4px solid var(--ss-warning);
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.08) 0%, rgba(11, 15, 25, 0.65) 100%);
+}
+
+.ss-attention-card-main {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
-  background: rgba(11, 15, 25, 0.45);
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  transition: background 0.12s ease;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
 }
 
-.ss-compact-activity-row:hover {
-  background: rgba(11, 15, 25, 0.75);
+.ss-attention-card-product {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+  flex: 1 1 240px;
+}
+
+.ss-attention-product-name {
+  font-size: 13.5px;
+  word-break: break-word;
+}
+
+.ss-attention-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.ss-attention-stock-stat {
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.ss-attention-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.ss-attention-card-reason {
+  font-size: 11.5px;
+  color: var(--ss-warning-text);
+  display: flex;
+  align-items: center;
+  word-break: break-word;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* Timeline Activity Feed */
+.ss-activity-timeline-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ss-timeline-feed-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  background: rgba(11, 15, 25, 0.55);
+  border-radius: var(--ss-radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.15s ease, border-color 0.15s ease;
+  min-width: 0;
+}
+
+.ss-timeline-feed-item:hover {
+  background: rgba(21, 30, 50, 0.75);
+  border-color: var(--ss-border-light);
+}
+
+.ss-timeline-feed-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ss-timeline-feed-indicator.receipt { background: var(--ss-success); box-shadow: 0 0 6px rgba(16, 185, 129, 0.5); }
+.ss-timeline-feed-indicator.delivery { background: var(--ss-danger); box-shadow: 0 0 6px rgba(239, 68, 68, 0.5); }
+.ss-timeline-feed-indicator.transfer { background: var(--ss-info); box-shadow: 0 0 6px rgba(14, 165, 233, 0.5); }
+.ss-timeline-feed-indicator.adjustment { background: var(--ss-warning); box-shadow: 0 0 6px rgba(245, 158, 11, 0.5); }
+
+.ss-timeline-feed-content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ss-timeline-feed-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
 }
 
 /* Warehouse Card Overview */
@@ -1479,17 +1633,18 @@
 }
 
 .ss-wh-status-item {
-  padding: 12px 14px;
+  padding: 10px 12px;
   background: rgba(11, 15, 25, 0.6);
   border: 1px solid var(--ss-border);
-  border-radius: 8px;
+  border-radius: var(--ss-radius-sm);
   cursor: pointer;
   transition: all 0.15s ease;
+  min-width: 0;
 }
 
 .ss-wh-status-item:hover {
   border-color: var(--ss-border-light);
-  background: rgba(11, 15, 25, 0.85);
+  background: rgba(21, 30, 50, 0.85);
   transform: translateY(-1px);
 }
 

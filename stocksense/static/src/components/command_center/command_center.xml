@@ -202,11 +202,11 @@
                                 <t t-foreach="operationalFocusItems" t-as="item" t-key="item.id">
                                     <div class="ss-op-focus-item">
                                         <div class="ss-op-focus-item-top">
-                                            <div class="d-flex align-items-center gap-2">
-                                                <span class="ss-sku-badge"><t t-esc="item.sku"/></span>
-                                                <span class="fw-bold text-white text-truncate" style="max-width: 170px;"><t t-esc="item.name"/></span>
+                                            <div class="d-flex align-items-center gap-2 flex-grow-1" style="min-width: 0;">
+                                                <span class="ss-sku-badge flex-shrink-0"><t t-esc="item.sku"/></span>
+                                                <span class="fw-bold text-white text-truncate"><t t-esc="item.name"/></span>
                                             </div>
-                                            <span t-att-class="'ss-badge ' + item.health_status">
+                                            <span t-att-class="'ss-badge flex-shrink-0 ' + item.health_status">
                                                 <t t-esc="item.health_status.toUpperCase()"/>
                                             </span>
                                         </div>
@@ -311,7 +311,7 @@
                 <div class="ss-bento-split-grid">
                     <!-- Left: Products Requiring Attention & Recent Activity (Col 7) -->
                     <div class="d-flex flex-column gap-4">
-                        <!-- Products Requiring Attention (Compact List) -->
+                        <!-- Products Requiring Attention (Operational Risk Card Stack) -->
                         <div class="ss-panel">
                             <div class="ss-panel-header">
                                 <div>
@@ -323,73 +323,61 @@
                                 </button>
                             </div>
 
-                            <div class="ss-table-container">
-                                <table class="ss-table-dense">
-                                    <thead>
-                                        <tr>
-                                            <th>SKU Reference</th>
-                                            <th>Product Name</th>
-                                            <th>On Hand / Safety Min</th>
-                                            <th>Health Status</th>
-                                            <th>Primary Diagnostic Reason</th>
-                                            <th class="text-end">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <t t-if="productsRequiringAttention and productsRequiringAttention.length &gt; 0">
-                                            <t t-foreach="productsRequiringAttention" t-as="p" t-key="p.id">
-                                                <tr>
-                                                    <td>
-                                                        <span class="ss-sku-badge"><t t-esc="p.sku"/></span>
-                                                    </td>
-                                                    <td>
-                                                        <span class="fw-bold text-white"><t t-esc="p.name"/></span>
-                                                        <span class="ss-cat-tag ms-1" t-if="p.category_name"><t t-esc="p.category_name"/></span>
-                                                    </td>
-                                                    <td>
-                                                        <span class="fw-bold font-monospace text-white"><t t-esc="formatNumber(p.stock)"/></span>
-                                                        <span class="text-secondary small"> / <t t-esc="formatNumber(p.min_threshold)"/> <t t-esc="p.uom"/></span>
-                                                    </td>
-                                                    <td>
-                                                        <span t-att-class="'ss-badge ' + p.health_status">
-                                                            <t t-esc="p.health_status.toUpperCase()"/> (<t t-esc="p.health_score"/>%)
-                                                        </span>
-                                                    </td>
-                                                    <td style="max-width: 260px;">
-                                                        <span class="text-secondary small text-truncate d-block" t-att-title="p.reasons">
-                                                            <t t-esc="p.reasons ? p.reasons.split('\n')[0].replace('• ', '') : 'Stock below minimum threshold.'"/>
-                                                        </span>
-                                                    </td>
-                                                    <td class="text-end">
-                                                        <div class="d-flex align-items-center justify-content-end gap-1">
-                                                            <button class="btn btn-outline-primary ss-btn-xs" t-on-click="() =&gt; this.testInSimulator(p.id)" title="Simulate replenishment order">
-                                                                <i class="fa fa-sliders"></i> Simulate
-                                                            </button>
-                                                            <button class="btn btn-outline-info ss-btn-xs" t-on-click="() =&gt; this.openProductLedger(p.id, p.name)" title="Inspect stock ledger">
-                                                                <i class="fa fa-history"></i>
-                                                            </button>
-                                                            <button class="btn btn-outline-light ss-btn-xs" t-on-click="() =&gt; this.openProductForm(p.id)" title="Open product master">
-                                                                <i class="fa fa-external-link"></i>
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            </t>
-                                        </t>
-                                        <t t-else="">
-                                            <tr>
-                                                <td colspan="6" class="text-center py-4 text-muted">
-                                                    <i class="fa fa-check-circle text-success fa-2x mb-2 d-block"></i>
-                                                    <div>All catalog products are operating within nominal safety thresholds.</div>
-                                                </td>
-                                            </tr>
-                                        </t>
-                                    </tbody>
-                                </table>
+                            <div class="ss-attention-card-stack">
+                                <t t-if="productsRequiringAttention and productsRequiringAttention.length &gt; 0">
+                                    <t t-foreach="productsRequiringAttention" t-as="p" t-key="p.id">
+                                        <div t-att-class="'ss-attention-card ' + p.health_status">
+                                            <div class="ss-attention-card-main">
+                                                <div class="ss-attention-card-product">
+                                                    <span t-att-class="'ss-badge ' + p.health_status">
+                                                        <t t-esc="p.health_status.toUpperCase()"/> (<t t-esc="p.health_score"/>%)
+                                                    </span>
+                                                    <span class="ss-sku-badge"><t t-esc="p.sku"/></span>
+                                                    <span class="fw-bold text-white ss-attention-product-name"><t t-esc="p.name"/></span>
+                                                    <span class="ss-cat-tag" t-if="p.category_name"><t t-esc="p.category_name"/></span>
+                                                </div>
+
+                                                <div class="ss-attention-card-meta">
+                                                    <div class="ss-attention-stock-stat">
+                                                        <span class="text-secondary small">Stock:</span>
+                                                        <strong t-att-class="'font-monospace ms-1 ' + (p.stock &lt;= p.min_threshold ? 'text-danger' : 'text-warning')">
+                                                            <t t-esc="formatNumber(p.stock)"/>
+                                                        </strong>
+                                                        <span class="text-secondary small ms-1">/ Min: <t t-esc="formatNumber(p.min_threshold)"/> <t t-esc="p.uom"/></span>
+                                                    </div>
+
+                                                    <div class="ss-attention-actions">
+                                                        <button class="btn btn-outline-primary ss-btn-xs" t-on-click="() =&gt; this.testInSimulator(p.id)" title="Simulate replenishment order">
+                                                            <i class="fa fa-sliders"></i> Simulate
+                                                        </button>
+                                                        <button class="btn btn-outline-info ss-btn-xs" t-on-click="() =&gt; this.openProductLedger(p.id, p.name)" title="Inspect stock ledger">
+                                                            <i class="fa fa-history"></i> Ledger
+                                                        </button>
+                                                        <button class="btn btn-outline-light ss-btn-xs" t-on-click="() =&gt; this.openProductForm(p.id)" title="Open product master">
+                                                            <i class="fa fa-external-link"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="ss-attention-card-reason">
+                                                <i class="fa fa-info-circle me-1 text-warning"></i>
+                                                <t t-esc="p.reasons ? p.reasons.split('\n')[0].replace('• ', '') : 'Stock level is below minimum safety buffer.'"/>
+                                            </div>
+                                        </div>
+                                    </t>
+                                </t>
+                                <t t-else="">
+                                    <div class="ss-empty-state py-4 text-center">
+                                        <i class="fa fa-check-circle text-success fa-2x mb-2 d-block"></i>
+                                        <div class="ss-empty-title">All Catalog SKUs Healthy</div>
+                                        <div class="ss-empty-desc text-secondary small">Every product is currently operating within nominal safety thresholds.</div>
+                                    </div>
+                                </t>
                             </div>
                         </div>
 
-                        <!-- Recent Activity (Compact Timeline replacing giant ledger table) -->
+                        <!-- Recent Activity (Compact Timeline Feed) -->
                         <div class="ss-panel">
                             <div class="ss-panel-header">
                                 <div>
@@ -401,28 +389,33 @@
                                 </button>
                             </div>
 
-                            <div class="ss-compact-activity-list">
+                            <div class="ss-activity-timeline-feed">
                                 <t t-if="recentActivityEvents and recentActivityEvents.length &gt; 0">
                                     <t t-foreach="recentActivityEvents" t-as="m" t-key="m.id">
-                                        <div class="ss-compact-activity-row">
-                                            <div class="d-flex align-items-center gap-2">
-                                                <span t-att-class="'ss-badge ' + (m.op_type === 'receipt' ? 'healthy' : (m.op_type === 'delivery' ? 'critical' : (m.op_type === 'transfer' ? 'deterministic' : 'attention')))">
-                                                    <t t-esc="m.op_type.toUpperCase()"/>
-                                                </span>
-                                                <span class="font-monospace text-muted small"><t t-esc="m.ref"/></span>
-                                                <span class="fw-bold text-white"><t t-esc="m.product_name"/></span>
-                                                <span class="ss-sku-badge"><t t-esc="m.product_sku"/></span>
-                                            </div>
-                                            <div class="d-flex align-items-center gap-3">
-                                                <span t-att-class="'fw-bold font-monospace ' + (m.delta &gt; 0 ? 'text-success' : 'text-danger')">
-                                                    <t t-esc="m.delta &gt; 0 ? '+' : ''"/><t t-esc="formatNumber(m.delta)"/>
-                                                </span>
-                                                <span class="text-secondary small font-monospace">
-                                                    bal: <strong class="text-white"><t t-esc="formatNumber(m.balance_after)"/></strong>
-                                                </span>
-                                                <span class="text-muted small" style="font-size: 10.5px;">
-                                                    <t t-esc="m.date ? m.date.substring(11, 16) : ''"/>
-                                                </span>
+                                        <div class="ss-timeline-feed-item">
+                                            <div class="ss-timeline-feed-indicator" t-att-class="m.op_type === 'receipt' ? 'receipt' : (m.op_type === 'delivery' ? 'delivery' : (m.op_type === 'transfer' ? 'transfer' : 'adjustment'))"></div>
+                                            <div class="ss-timeline-feed-content">
+                                                <div class="ss-timeline-feed-main">
+                                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                        <span t-att-class="'ss-badge ' + (m.op_type === 'receipt' ? 'healthy' : (m.op_type === 'delivery' ? 'critical' : (m.op_type === 'transfer' ? 'deterministic' : 'attention')))">
+                                                            <t t-esc="m.op_type.toUpperCase()"/>
+                                                        </span>
+                                                        <span class="font-monospace text-muted small"><t t-esc="m.ref"/></span>
+                                                        <span class="fw-bold text-white"><t t-esc="m.product_name"/></span>
+                                                        <span class="ss-sku-badge"><t t-esc="m.product_sku"/></span>
+                                                    </div>
+                                                    <div class="d-flex align-items-center gap-3 ms-auto flex-wrap">
+                                                        <span t-att-class="'fw-bold font-monospace ' + (m.delta &gt; 0 ? 'text-success' : 'text-danger')">
+                                                            <t t-esc="m.delta &gt; 0 ? '+' : ''"/><t t-esc="formatNumber(m.delta)"/>
+                                                        </span>
+                                                        <span class="text-secondary small font-monospace">
+                                                            bal: <strong class="text-white"><t t-esc="formatNumber(m.balance_after)"/></strong>
+                                                        </span>
+                                                        <span class="text-muted small" style="font-size: 11px;">
+                                                            <t t-esc="m.date ? m.date.substring(11, 16) : ''"/>
+                                                        </span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </t>
@@ -432,7 +425,7 @@
                                 </t>
                             </div>
 
-                            <div class="d-flex justify-content-between align-items-center pt-2 mt-2 border-top border-secondary" style="font-size: 11px;">
+                            <div class="d-flex justify-content-between align-items-center pt-2 mt-2 border-top border-secondary flex-wrap gap-2" style="font-size: 11px;">
                                 <span class="text-secondary">Double-entry stock ledger: every posting is an immutable debit/credit quant record.</span>
                                 <button class="btn btn-link btn-sm text-info p-0" t-on-click="() =&gt; this.openLedgerHistory()">
                                     <i class="fa fa-external-link me-1"></i> Open Native Ledger
