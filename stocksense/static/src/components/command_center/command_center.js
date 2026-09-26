@@ -12,6 +12,8 @@ export class StocksenseCommandCenter extends Component {
 
         this.state = useState({
             activeTab: "overview",
+            productSearch: "",
+            productHealthFilter: "all",
             metrics: {
                 kpis: {},
                 movement_overview: {},
@@ -74,6 +76,59 @@ export class StocksenseCommandCenter extends Component {
         this.state.activeTab = tab;
     }
 
+    setProductHealthFilter(filter) {
+        this.state.productHealthFilter = filter;
+    }
+
+    onProductSearchInput(ev) {
+        this.state.productSearch = (ev.target.value || "").toLowerCase().trim();
+    }
+
+    clearProductSearch() {
+        this.state.productSearch = "";
+    }
+
+    get filteredProducts() {
+        const products = this.state.metrics.all_products || [];
+        const filter = this.state.productHealthFilter;
+        const search = this.state.productSearch;
+
+        return products.filter((p) => {
+            if (filter !== "all" && p.health_status !== filter) {
+                return false;
+            }
+            if (search) {
+                const name = (p.name || "").toLowerCase();
+                const sku = (p.sku || "").toLowerCase();
+                const cat = (p.category_name || "").toLowerCase();
+                if (!name.includes(search) && !sku.includes(search) && !cat.includes(search)) {
+                    return false;
+                }
+            }
+            return true;
+        });
+    }
+
+    formatCurrency(val) {
+        return Number(val || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    formatNumber(val) {
+        return Number(val || 0).toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    }
+
+    getStockBarWidth(stock, maxThreshold) {
+        const max = maxThreshold && maxThreshold > 0 ? maxThreshold : 100;
+        const pct = (Number(stock || 0) / max) * 100;
+        return Math.min(100, Math.max(0, Math.round(pct)));
+    }
+
+    getMinMarkerPos(minThreshold, maxThreshold) {
+        const max = maxThreshold && maxThreshold > 0 ? maxThreshold : 100;
+        const pct = (Number(minThreshold || 0) / max) * 100;
+        return Math.min(100, Math.max(0, Math.round(pct)));
+    }
+
     toggleBlockPayload(blockId) {
         if (this.state.expandedBlockId === blockId) {
             this.state.expandedBlockId = null;
@@ -114,7 +169,33 @@ export class StocksenseCommandCenter extends Component {
         }
     }
 
+    testInSimulator(productId) {
+        this.state.simProductId = productId;
+        this.state.activeTab = "simulator";
+        this.runSimulator();
+    }
+
     // Direct Odoo Action Navigation
+    openProductForm(productId) {
+        this.actionService.doAction({
+            name: "Product Master",
+            type: "ir.actions.act_window",
+            res_model: "stocksense.product",
+            res_id: productId,
+            views: [[false, "form"]],
+        });
+    }
+
+    openProductLedger(productId, productName) {
+        this.actionService.doAction({
+            name: `Stock Ledger: ${productName || 'SKU'}`,
+            type: "ir.actions.act_window",
+            res_model: "stocksense.stock.ledger",
+            view_mode: "tree,form",
+            domain: [["product_id", "=", productId]],
+        });
+    }
+
     openCriticalProducts() {
         this.actionService.doAction({
             name: "Critical Risk SKUs",
@@ -181,3 +262,4 @@ export class StocksenseCommandCenter extends Component {
 
 StocksenseCommandCenter.template = "stocksense.CommandCenter";
 registry.category("actions").add("stocksense_command_center_view", StocksenseCommandCenter);
+

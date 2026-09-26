@@ -64,11 +64,19 @@ class StocksenseDashboardController(http.Controller):
                 'id': p.id,
                 'name': p.name,
                 'sku': p.sku,
-                'stock': p.total_stock,
+                'category_name': p.category_id.name if p.category_id else 'General',
+                'uom': p.uom_name,
+                'stock': round(p.total_stock, 1),
+                'available_stock': round(p.available_stock, 1),
+                'reserved_stock': round(p.total_stock - p.available_stock, 1),
+                'cost_price': round(p.standard_price, 2),
+                'valuation': round(p.stock_valuation, 2),
                 'min_threshold': p.min_stock_threshold,
+                'max_threshold': p.max_stock_threshold,
                 'health_status': p.health_status,
                 'health_score': p.health_score,
-                'reasons': p.health_reasons
+                'reasons': p.health_reasons,
+                'days_of_inventory': round(p.days_of_inventory, 1) if p.days_of_inventory else None
             }
             for p in products.filtered(lambda p: p.health_status in ['attention', 'critical'])
         ]
@@ -159,12 +167,20 @@ class StocksenseDashboardController(http.Controller):
                 'id': p.id,
                 'name': p.name,
                 'sku': p.sku,
-                'stock': p.total_stock,
+                'category_name': p.category_id.name if p.category_id else 'General',
+                'uom': p.uom_name,
+                'stock': round(p.total_stock, 1),
+                'available_stock': round(p.available_stock, 1),
+                'reserved_stock': round(p.total_stock - p.available_stock, 1),
+                'cost_price': round(p.standard_price, 2),
+                'valuation': round(p.stock_valuation, 2),
                 'min_threshold': p.min_stock_threshold,
                 'max_threshold': p.max_stock_threshold,
                 'health_status': p.health_status,
                 'health_score': p.health_score,
-                'reasons': p.health_reasons
+                'reasons': p.health_reasons,
+                'days_of_inventory': round(p.days_of_inventory, 1) if p.days_of_inventory else None,
+                'preferred_location': p.preferred_location_id.name if p.preferred_location_id else '',
             }
             for p in products
         ]
@@ -177,30 +193,55 @@ class StocksenseDashboardController(http.Controller):
                 'severity': a.severity,
                 'alert_type': a.alert_type,
                 'detection_mechanism': a.detection_mechanism,
+                'product_id': a.product_id.id,
                 'product_name': a.product_id.name,
                 'product_sku': a.product_sku,
-                'current_quantity': a.current_quantity,
-                'threshold': a.threshold,
+                'current_quantity': round(a.current_quantity, 1),
+                'threshold': round(a.threshold, 1),
                 'reason': a.reason,
                 'detected_at': a.detected_at.strftime('%Y-%m-%d %H:%M:%S') if a.detected_at else ''
             }
             for a in open_alerts
         ]
 
+        # Live Real-Time Stock Deficit Alerts
+        # Ensure products in critical/attention state are surfaced as operational alerts if not already in alert records
+        alert_product_ids = set(a.product_id.id for a in open_alerts)
+        for p in products.filtered(lambda p: p.health_status in ['critical', 'attention'] and p.id not in alert_product_ids):
+            clean_reason = p.health_reasons.strip().replace('\n• ', ' · ') if p.health_reasons else f"Stock level ({p.total_stock:.1f}) is at or below safety threshold ({p.min_stock_threshold:.1f})."
+            if clean_reason.startswith('• '):
+                clean_reason = clean_reason[2:]
+            open_alerts_list.append({
+                'id': f"live_alert_{p.id}",
+                'name': f"LIVE-{p.sku}",
+                'severity': p.health_status,
+                'alert_type': 'low_stock',
+                'detection_mechanism': 'threshold_breach',
+                'product_id': p.id,
+                'product_name': p.name,
+                'product_sku': p.sku,
+                'current_quantity': round(p.total_stock, 1),
+                'threshold': round(p.min_stock_threshold, 1),
+                'reason': clean_reason,
+                'detected_at': 'Real-Time Telemetry'
+            })
+
         # Calculate health percentages
         healthy_pct = round((healthy_count / total_products * 100), 1) if total_products else 0
         attention_pct = round((attention_count / total_products * 100), 1) if total_products else 0
         critical_pct = round((critical_count / total_products * 100), 1) if total_products else 0
+        low_stock_count = len(products.filtered(lambda p: p.total_stock <= p.min_stock_threshold))
 
         return {
             'kpis': {
                 'total_products': total_products,
                 'total_stock': round(total_stock, 1),
+                'available_stock': round(sum(products.mapped('available_stock')), 1),
                 'total_valuation': round(total_valuation, 2),
                 'healthy_count': healthy_count,
                 'attention_count': attention_count,
                 'critical_count': critical_count,
-                'open_alerts_count': len(open_alerts),
+                'open_alerts_count': len(open_alerts_list),
                 'pending_receipts': pending_receipts,
                 'pending_deliveries': pending_deliveries,
                 'pending_transfers': pending_transfers,
@@ -215,7 +256,7 @@ class StocksenseDashboardController(http.Controller):
                 'critical_count': critical_count,
                 'attention_count': attention_count,
                 'anomalies_count': len(anomalies_list),
-                'low_stock_count': len([a for a in open_alerts if a.alert_type == 'low_stock']),
+                'low_stock_count': low_stock_count,
                 'anomalies': anomalies_list,
                 'active_alerts': open_alerts_list
             },
