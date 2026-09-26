@@ -8,26 +8,48 @@
                     <h1>
                         <i class="fa fa-cubes text-primary"></i>
                         StockSense Command Center
-                        <span class="ss-brand-badge">Intelligence v1.0</span>
+                        <span class="ss-brand-badge">Enterprise v1.0</span>
                     </h1>
-                    <div class="ss-subtitle">Event-Driven Inventory Intelligence, Real-Time Flow &amp; Operational Decision Support</div>
+                    <div class="ss-subtitle">Real-Time Inventory Operations &amp; Decision Support</div>
                 </div>
-                <div class="d-flex align-items-center gap-3">
-                    <t t-if="state.metrics.audit_integrity and state.metrics.audit_integrity.valid">
-                        <span class="ss-badge healthy p-2" title="Continuous SHA-256 Hash Chain Integrity Verified">
-                            <i class="fa fa-shield"></i>
-                            SHA-256 AUDIT CHAIN VALID (<t t-esc="state.metrics.audit_integrity.total_blocks"/> BLOCKS)
+                <div class="ss-header-actions">
+                    <!-- Warehouse Selector -->
+                    <div class="ss-header-control" title="Filter Command Center &amp; Inventory by Warehouse">
+                        <i class="fa fa-building text-secondary"></i>
+                        <select class="ss-header-select" t-att-value="state.warehouseFilter" t-on-change="onWarehouseFilterChange">
+                            <option value="all">All Facilities</option>
+                            <t t-foreach="state.metrics.warehouse_stats || []" t-as="wh" t-key="wh.id">
+                                <option t-att-value="wh.code">
+                                    <t t-esc="wh.code"/> (<t t-esc="wh.name"/>)
+                                </option>
+                            </t>
+                        </select>
+                    </div>
+
+                    <!-- Global Search -->
+                    <div class="ss-global-search-wrap" title="Search SKU, Product Name, or Category">
+                        <i class="fa fa-search text-secondary"></i>
+                        <input type="text" class="ss-global-search-input" placeholder="Search catalog..."
+                               t-att-value="state.productSearch"
+                               t-on-input="onGlobalSearch"/>
+                        <button t-if="state.productSearch" class="ss-search-clear" t-on-click="clearProductSearch" title="Clear">
+                            <i class="fa fa-times"></i>
+                        </button>
+                    </div>
+
+                    <!-- Active Alerts Indicator Button -->
+                    <button class="btn btn-outline-warning btn-sm d-flex align-items-center gap-1" t-on-click="() =&gt; this.navigateToAlerts()" title="View active operational alerts">
+                        <i class="fa fa-bell"></i>
+                        <span>Alerts</span>
+                        <span class="badge bg-danger ms-1" t-if="state.metrics.operational_intelligence and state.metrics.operational_intelligence.active_alerts.length &gt; 0">
+                            <t t-esc="state.metrics.operational_intelligence.active_alerts.length"/>
                         </span>
-                    </t>
-                    <t t-else="">
-                        <span class="ss-badge critical p-2" title="Cryptographic verification failed">
-                            <i class="fa fa-exclamation-triangle"></i>
-                            AUDIT INTEGRITY ALERT
-                        </span>
-                    </t>
-                    <button class="btn btn-outline-light btn-sm d-flex align-items-center gap-2" t-on-click="refreshData">
+                    </button>
+
+                    <!-- Refresh Button -->
+                    <button class="btn btn-outline-light btn-sm d-flex align-items-center gap-2" t-on-click="refreshData" title="Refresh live telemetry">
                         <i class="fa fa-refresh" t-att-class="{'fa-spin': state.loading}"></i>
-                        <span>Refresh Stream</span>
+                        <span>Refresh</span>
                     </button>
                 </div>
             </div>
@@ -45,7 +67,13 @@
             <!-- Navigation Tabs -->
             <div class="ss-nav-tabs">
                 <button class="ss-tab-btn" t-att-class="{active: state.activeTab === 'overview'}" t-on-click="() =&gt; this.setTab('overview')">
-                    <i class="fa fa-th-large"></i> Executive Overview
+                    <i class="fa fa-th-large"></i> Command Center
+                </button>
+                <button class="ss-tab-btn" t-att-class="{active: state.activeTab === 'inventory'}" t-on-click="() =&gt; this.setTab('inventory')">
+                    <i class="fa fa-boxes"></i> Product Inventory
+                    <span class="badge bg-secondary ms-1" t-if="state.metrics.all_products">
+                        <t t-esc="state.metrics.all_products.length"/>
+                    </span>
                 </button>
                 <button class="ss-tab-btn" t-att-class="{active: state.activeTab === 'intel'}" t-on-click="() =&gt; this.setTab('intel')">
                     <i class="fa fa-bolt text-warning"></i> Operational Intelligence
@@ -71,139 +99,485 @@
             </div>
 
             <!-- ==================================================================== -->
-            <!-- TAB 1: EXECUTIVE OVERVIEW (ENTERPRISE BENTO COMMAND CENTER) -->
+            <!-- TAB 1: COMMAND CENTER (BENTO EXECUTIVE OVERVIEW) -->
             <!-- ==================================================================== -->
             <t t-if="state.activeTab === 'overview'">
-                <!-- Top Bento KPI Matrix (Linear & Ghost inspired 6-Tile Row) -->
-                <div class="ss-bento-kpi-grid">
-                    <!-- Tile 1: Active SKUs -->
-                    <div class="ss-bento-card blue" t-on-click="() =&gt; this.setProductHealthFilter('all')" style="cursor: pointer;" title="Click to view all SKUs in inventory table">
-                        <div class="ss-bento-top">
-                            <span class="ss-bento-label">Active SKUs</span>
-                            <i class="fa fa-cubes ss-bento-icon"></i>
-                        </div>
-                        <div class="ss-bento-val"><t t-esc="state.metrics.kpis ? state.metrics.kpis.total_products : 0"/></div>
-                        <div class="ss-bento-sub">
-                            <span>Catalog Master Records</span>
-                        </div>
-                    </div>
-
-                    <!-- Tile 2: Total Stored Units -->
-                    <div class="ss-bento-card green">
-                        <div class="ss-bento-top">
-                            <span class="ss-bento-label">Physical Stock</span>
-                            <i class="fa fa-database ss-bento-icon"></i>
-                        </div>
-                        <div class="ss-bento-val text-success">
-                            <t t-esc="formatNumber(state.metrics.kpis ? state.metrics.kpis.total_stock : 0)"/>
-                        </div>
-                        <div class="ss-bento-sub">
-                            <span>Available: <strong class="text-white"><t t-esc="formatNumber(state.metrics.kpis ? state.metrics.kpis.available_stock : 0)"/></strong> units</span>
-                        </div>
-                    </div>
-
-                    <!-- Tile 3: Total Stock Valuation -->
-                    <div class="ss-bento-card cyan">
-                        <div class="ss-bento-top">
-                            <span class="ss-bento-label">Stock Valuation</span>
-                            <i class="fa fa-dollar ss-bento-icon"></i>
-                        </div>
-                        <div class="ss-bento-val text-info">
-                            $<t t-esc="formatCurrency(state.metrics.kpis ? state.metrics.kpis.total_valuation : 0)"/>
-                        </div>
-                        <div class="ss-bento-sub">
-                            <span>Cost-Basis Inventory Asset</span>
-                        </div>
-                    </div>
-
-                    <!-- Tile 4: At-Risk / Critical SKUs -->
-                    <div class="ss-bento-card red" t-on-click="() =&gt; this.setProductHealthFilter('critical')" style="cursor: pointer;" title="Click to filter table to critical out-of-stock items">
-                        <div class="ss-bento-top">
-                            <span class="ss-bento-label">At-Risk Stock</span>
-                            <i class="fa fa-exclamation-triangle ss-bento-icon"></i>
-                        </div>
-                        <div class="ss-bento-val text-danger">
-                            <t t-esc="state.metrics.kpis ? state.metrics.kpis.critical_count : 0"/>
-                            <span class="fs-6 text-warning ms-1" t-if="state.metrics.kpis and state.metrics.kpis.attention_count &gt; 0">
-                                (+<t t-esc="state.metrics.kpis.attention_count"/> Attn)
+                <!-- Level 1: Primary Inventory Health Hero & Operational Focus -->
+                <div class="ss-hero-grid mb-4">
+                    <!-- Hero 1: Inventory Health (Primary Metric) -->
+                    <div class="ss-hero-card health-hero">
+                        <div class="ss-hero-header">
+                            <div>
+                                <span class="ss-hero-title">
+                                    <i class="fa fa-heartbeat text-danger me-1"></i> Inventory Health
+                                </span>
+                                <span class="ss-hero-subtitle">Deterministic Multi-Factor Scoring &amp; Real Physical Quants</span>
+                            </div>
+                            <span t-att-class="'ss-badge ' + (state.metrics.health_distribution and state.metrics.health_distribution.healthy_pct &gt;= 75 ? 'healthy' : (state.metrics.health_distribution and state.metrics.health_distribution.healthy_pct &gt;= 40 ? 'attention' : 'critical'))">
+                                <t t-if="state.metrics.health_distribution and state.metrics.health_distribution.healthy_pct &gt;= 75">Optimal Posture</t>
+                                <t t-elif="state.metrics.health_distribution and state.metrics.health_distribution.healthy_pct &gt;= 40">Attention Required</t>
+                                <t t-else="">Critical Deficit</t>
                             </span>
                         </div>
-                        <div class="ss-bento-sub">
-                            <span class="text-danger">Below Safety Threshold</span>
+
+                        <!-- Primary Metric Display -->
+                        <div class="ss-hero-metric-row">
+                            <div>
+                                <div class="ss-hero-metric-val text-white">
+                                    <t t-esc="formatNumber(state.metrics.kpis ? state.metrics.kpis.total_stock : 0)"/>
+                                    <span class="ss-hero-metric-unit">Units</span>
+                                </div>
+                                <div class="ss-hero-metric-label">Physical Stock on Hand Across All Locations</div>
+                            </div>
+                            <div class="ss-hero-sub-stats">
+                                <div class="ss-sub-stat">
+                                    <span class="text-secondary small">Free / Available:</span>
+                                    <strong class="text-success font-monospace ms-1"><t t-esc="formatNumber(state.metrics.kpis ? state.metrics.kpis.available_stock : 0)"/></strong>
+                                </div>
+                                <div class="ss-sub-stat">
+                                    <span class="text-secondary small">Reserved:</span>
+                                    <strong class="text-warning font-monospace ms-1"><t t-esc="formatNumber(state.metrics.kpis ? (state.metrics.kpis.total_stock - state.metrics.kpis.available_stock) : 0)"/></strong>
+                                </div>
+                                <div class="ss-sub-stat">
+                                    <span class="text-secondary small">Valuation:</span>
+                                    <strong class="text-info font-monospace ms-1">$<t t-esc="formatCurrency(state.metrics.kpis ? state.metrics.kpis.total_valuation : 0)"/></strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Health Distribution Segmented Bar -->
+                        <div class="ss-health-dist-box">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="text-secondary small fw-bold text-uppercase">Catalog Health Distribution:</span>
+                                <span class="text-secondary small">
+                                    <strong class="text-white"><t t-esc="state.metrics.all_products ? state.metrics.all_products.length : 0"/></strong> Registered SKUs
+                                </span>
+                            </div>
+                            <div class="ss-health-segmented-bar" title="Current SKU health distribution">
+                                <div class="bg-success" t-att-style="'width: ' + (state.metrics.health_distribution ? state.metrics.health_distribution.healthy_pct : 0) + '%;'"/>
+                                <div class="bg-warning" t-att-style="'width: ' + (state.metrics.health_distribution ? state.metrics.health_distribution.attention_pct : 0) + '%;'"/>
+                                <div class="bg-danger" t-att-style="'width: ' + (state.metrics.health_distribution ? state.metrics.health_distribution.critical_pct : 0) + '%;'"/>
+                            </div>
+                            <div class="ss-health-chips-row">
+                                <button class="ss-health-chip healthy" t-on-click="() =&gt; this.navigateToInventory('healthy')" title="Click to view healthy products">
+                                    <i class="fa fa-circle text-success"></i>
+                                    <span><t t-esc="state.metrics.health_distribution ? state.metrics.health_distribution.healthy_count : 0"/> Healthy (<t t-esc="state.metrics.health_distribution ? state.metrics.health_distribution.healthy_pct : 0"/>%)</span>
+                                </button>
+                                <button class="ss-health-chip attention" t-on-click="() =&gt; this.navigateToInventory('attention')" title="Click to view attention products">
+                                    <i class="fa fa-circle text-warning"></i>
+                                    <span><t t-esc="state.metrics.health_distribution ? state.metrics.health_distribution.attention_count : 0"/> Attention (<t t-esc="state.metrics.health_distribution ? state.metrics.health_distribution.attention_pct : 0"/>%)</span>
+                                </button>
+                                <button class="ss-health-chip critical" t-on-click="() =&gt; this.navigateToInventory('critical')" title="Click to view critical products">
+                                    <i class="fa fa-circle text-danger"></i>
+                                    <span><t t-esc="state.metrics.health_distribution ? state.metrics.health_distribution.critical_count : 0"/> Critical (<t t-esc="state.metrics.health_distribution ? state.metrics.health_distribution.critical_pct : 0"/>%)</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="ss-hero-footer">
+                            <span class="text-secondary small">
+                                <i class="fa fa-shield text-primary me-1"></i>
+                                Double-entry ledger verified · Real PostgreSQL state · Zero synthetic metrics
+                            </span>
                         </div>
                     </div>
 
-                    <!-- Tile 5: Pending Receipts -->
-                    <div class="ss-bento-card yellow" t-on-click="() =&gt; this.openReceiptsList()" style="cursor: pointer;" title="Click to inspect pending goods receipts">
-                        <div class="ss-bento-top">
-                            <span class="ss-bento-label">Pending Inbound</span>
-                            <i class="fa fa-arrow-circle-down ss-bento-icon"></i>
+                    <!-- Hero 2: Operational Focus (Top Urgency Deficits) -->
+                    <div class="ss-hero-card op-focus-hero">
+                        <div class="ss-hero-header">
+                            <div>
+                                <span class="ss-hero-title">
+                                    <i class="fa fa-crosshairs text-warning me-1"></i> Operational Focus
+                                </span>
+                                <span class="ss-hero-subtitle">Immediate Deficits Requiring Decision Support</span>
+                            </div>
+                            <span class="badge bg-danger" t-if="operationalFocusItems and operationalFocusItems.length &gt; 0">
+                                <t t-esc="productsRequiringAttention.length"/> Needing Attention
+                            </span>
                         </div>
-                        <div class="ss-bento-val text-warning">
-                            <t t-esc="state.metrics.kpis ? state.metrics.kpis.pending_receipts : 0"/>
-                        </div>
-                        <div class="ss-bento-sub">
-                            <span>Awaiting Supplier Intake</span>
-                        </div>
-                    </div>
 
-                    <!-- Tile 6: Pending Deliveries -->
-                    <div class="ss-bento-card purple" t-on-click="() =&gt; this.openDeliveriesList()" style="cursor: pointer;" title="Click to inspect pending customer deliveries">
-                        <div class="ss-bento-top">
-                            <span class="ss-bento-label">Pending Outbound</span>
-                            <i class="fa fa-paper-plane ss-bento-icon"></i>
+                        <!-- Top 3 Actionable Items -->
+                        <div class="ss-op-focus-list">
+                            <t t-if="operationalFocusItems and operationalFocusItems.length &gt; 0">
+                                <t t-foreach="operationalFocusItems" t-as="item" t-key="item.id">
+                                    <div class="ss-op-focus-item">
+                                        <div class="ss-op-focus-item-top">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="ss-sku-badge"><t t-esc="item.sku"/></span>
+                                                <span class="fw-bold text-white text-truncate" style="max-width: 170px;"><t t-esc="item.name"/></span>
+                                            </div>
+                                            <span t-att-class="'ss-badge ' + item.health_status">
+                                                <t t-esc="item.health_status.toUpperCase()"/>
+                                            </span>
+                                        </div>
+                                        <div class="ss-op-focus-item-mid">
+                                            <div class="ss-op-focus-stock">
+                                                <span class="text-secondary small">Stock:</span>
+                                                <strong t-att-class="'font-monospace ms-1 ' + (item.stock &lt;= item.min_threshold ? 'text-danger' : 'text-warning')">
+                                                    <t t-esc="formatNumber(item.stock)"/>
+                                                </strong>
+                                                <span class="text-secondary small ms-1">/ Min: <t t-esc="formatNumber(item.min_threshold)"/></span>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-1">
+                                                <button class="btn btn-outline-primary ss-btn-xs" t-on-click="() =&gt; this.testInSimulator(item.id)" title="Simulate replenishment order">
+                                                    <i class="fa fa-sliders"></i> Simulate
+                                                </button>
+                                                <button class="btn btn-outline-info ss-btn-xs" t-on-click="() =&gt; this.openProductLedger(item.id, item.name)" title="Inspect stock ledger">
+                                                    <i class="fa fa-history"></i> Ledger
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="ss-op-focus-reason">
+                                            <i class="fa fa-info-circle me-1 text-warning"></i>
+                                            <t t-esc="item.reasons ? item.reasons.split('\n')[0].replace('• ', '') : 'Below minimum threshold'"/>
+                                        </div>
+                                    </div>
+                                </t>
+                            </t>
+                            <t t-else="">
+                                <div class="ss-empty-state py-4">
+                                    <i class="fa fa-check-circle text-success fa-2x mb-2 d-block"></i>
+                                    <div class="ss-empty-title">All Catalog SKUs Healthy</div>
+                                    <div class="ss-empty-desc">No threshold breaches or low stock conditions detected.</div>
+                                </div>
+                            </t>
                         </div>
-                        <div class="ss-bento-val" style="color: #c084fc;">
-                            <t t-esc="state.metrics.kpis ? state.metrics.kpis.pending_deliveries : 0"/>
-                        </div>
-                        <div class="ss-bento-sub">
-                            <span>Fulfillment Dispatch Queue</span>
+
+                        <div class="ss-hero-footer d-flex justify-content-between align-items-center">
+                            <span class="text-secondary small">
+                                Priority operational items
+                            </span>
+                            <button class="btn btn-link btn-sm text-info p-0 text-decoration-none" t-on-click="() =&gt; this.navigateToAlerts()">
+                                <span>View all risks &amp; anomalies (<t t-esc="state.metrics.operational_intelligence ? state.metrics.operational_intelligence.active_alerts.length : 0"/>) →</span>
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Health Distribution & Fast Filter Strip -->
-                <div class="ss-health-filter-strip">
-                    <div class="ss-health-bar-container">
-                        <span class="text-secondary small fw-bold text-uppercase">Health Distribution:</span>
-                        <div class="ss-health-segmented-bar" title="Current catalog health distribution">
-                            <div class="bg-success" t-att-style="'width: ' + (state.metrics.health_distribution ? state.metrics.health_distribution.healthy_pct : 0) + '%;'"/>
-                            <div class="bg-warning" t-att-style="'width: ' + (state.metrics.health_distribution ? state.metrics.health_distribution.attention_pct : 0) + '%;'"/>
-                            <div class="bg-danger" t-att-style="'width: ' + (state.metrics.health_distribution ? state.metrics.health_distribution.critical_pct : 0) + '%;'"/>
+                <!-- Level 1.5: Secondary Operational Metrics Bar (Asymmetric Sleek Strip) -->
+                <div class="ss-secondary-metrics-bar mb-4">
+                    <div class="ss-sec-metric-item" t-on-click="() =&gt; this.navigateToInventory('all')" title="Click to view all registered SKUs in catalog">
+                        <div class="ss-sec-metric-icon blue"><i class="fa fa-cubes"></i></div>
+                        <div>
+                            <div class="ss-sec-metric-val"><t t-esc="state.metrics.kpis ? state.metrics.kpis.total_products : 0"/></div>
+                            <div class="ss-sec-metric-label">Active SKUs</div>
                         </div>
-                        <span class="small">
-                            <span class="text-success fw-bold"><t t-esc="state.metrics.health_distribution ? state.metrics.health_distribution.healthy_count : 0"/> Healthy (<t t-esc="state.metrics.health_distribution ? state.metrics.health_distribution.healthy_pct : 0"/>%)</span> · 
-                            <span class="text-warning fw-bold"><t t-esc="state.metrics.health_distribution ? state.metrics.health_distribution.attention_count : 0"/> Attention (<t t-esc="state.metrics.health_distribution ? state.metrics.health_distribution.attention_pct : 0"/>%)</span> · 
-                            <span class="text-danger fw-bold"><t t-esc="state.metrics.health_distribution ? state.metrics.health_distribution.critical_count : 0"/> Critical (<t t-esc="state.metrics.health_distribution ? state.metrics.health_distribution.critical_pct : 0"/>%)</span>
-                        </span>
                     </div>
 
-                    <!-- Linear Quick Filter Lozenges -->
-                    <div class="ss-filter-lozenge-group">
-                        <span class="text-muted small me-1">Filter Table:</span>
-                        <button class="ss-filter-lozenge" t-att-class="{active: state.productHealthFilter === 'all'}" t-on-click="() =&gt; this.setProductHealthFilter('all')">
-                            All SKUs (<t t-esc="state.metrics.all_products ? state.metrics.all_products.length : 0"/>)
-                        </button>
-                        <button class="ss-filter-lozenge critical" t-att-class="{active: state.productHealthFilter === 'critical'}" t-on-click="() =&gt; this.setProductHealthFilter('critical')">
-                            <i class="fa fa-circle text-danger"></i> Critical (<t t-esc="state.metrics.health_distribution ? state.metrics.health_distribution.critical_count : 0"/>)
-                        </button>
-                        <button class="ss-filter-lozenge attention" t-att-class="{active: state.productHealthFilter === 'attention'}" t-on-click="() =&gt; this.setProductHealthFilter('attention')">
-                            <i class="fa fa-circle text-warning"></i> Attention (<t t-esc="state.metrics.health_distribution ? state.metrics.health_distribution.attention_count : 0"/>)
-                        </button>
-                        <button class="ss-filter-lozenge healthy" t-att-class="{active: state.productHealthFilter === 'healthy'}" t-on-click="() =&gt; this.setProductHealthFilter('healthy')">
-                            <i class="fa fa-circle text-success"></i> Healthy (<t t-esc="state.metrics.health_distribution ? state.metrics.health_distribution.healthy_count : 0"/>)
-                        </button>
+                    <div class="ss-sec-metric-item" t-on-click="() =&gt; this.navigateToInventory('critical')" title="Click to filter inventory to critical at-risk SKUs">
+                        <div class="ss-sec-metric-icon red"><i class="fa fa-exclamation-triangle"></i></div>
+                        <div>
+                            <div class="ss-sec-metric-val text-danger"><t t-esc="state.metrics.kpis ? state.metrics.kpis.critical_count : 0"/></div>
+                            <div class="ss-sec-metric-label">Critical Risks</div>
+                        </div>
+                    </div>
+
+                    <div class="ss-sec-metric-item" t-on-click="() =&gt; this.navigateToAlerts()" title="Click to view operational alerts feed">
+                        <div class="ss-sec-metric-icon yellow"><i class="fa fa-bell"></i></div>
+                        <div>
+                            <div class="ss-sec-metric-val text-warning"><t t-esc="state.metrics.kpis ? state.metrics.kpis.open_alerts_count : 0"/></div>
+                            <div class="ss-sec-metric-label">Active Alerts</div>
+                        </div>
+                    </div>
+
+                    <div class="ss-sec-metric-item" t-on-click="() =&gt; this.openReceiptsList()" title="Click to inspect pending goods receipts">
+                        <div class="ss-sec-metric-icon cyan"><i class="fa fa-arrow-circle-down"></i></div>
+                        <div>
+                            <div class="ss-sec-metric-val text-info"><t t-esc="state.metrics.kpis ? state.metrics.kpis.pending_receipts : 0"/></div>
+                            <div class="ss-sec-metric-label">Pending Inbound</div>
+                        </div>
+                    </div>
+
+                    <div class="ss-sec-metric-item" t-on-click="() =&gt; this.openDeliveriesList()" title="Click to inspect pending customer deliveries">
+                        <div class="ss-sec-metric-icon purple"><i class="fa fa-paper-plane"></i></div>
+                        <div>
+                            <div class="ss-sec-metric-val" style="color: #c084fc;"><t t-esc="state.metrics.kpis ? state.metrics.kpis.pending_deliveries : 0"/></div>
+                            <div class="ss-sec-metric-label">Pending Outbound</div>
+                        </div>
+                    </div>
+
+                    <div class="ss-sec-metric-item" t-on-click="() =&gt; this.setTab('audit')" title="Click to inspect cryptographic audit chain">
+                        <div class="ss-sec-metric-icon green"><i class="fa fa-shield"></i></div>
+                        <div>
+                            <div class="ss-sec-metric-val text-success">
+                                <t t-esc="state.metrics.audit_integrity ? state.metrics.audit_integrity.total_blocks : 0"/>
+                            </div>
+                            <div class="ss-sec-metric-label">Audit Blocks Valid</div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- High-Density Product Inventory Table (Linear & Smartsheet inspired) -->
-                <div class="ss-panel mb-4">
+                <!-- Level 2 & 3: Bento Operations Grid -->
+                <div class="ss-bento-split-grid">
+                    <!-- Left: Products Requiring Attention & Recent Activity (Col 7) -->
+                    <div class="d-flex flex-column gap-4">
+                        <!-- Products Requiring Attention (Compact List) -->
+                        <div class="ss-panel">
+                            <div class="ss-panel-header">
+                                <div>
+                                    <h3><i class="fa fa-exclamation-circle text-danger"></i> Products Requiring Attention</h3>
+                                    <span class="ss-panel-subtitle">Items at critical zero-stock or breaching minimum safety buffer</span>
+                                </div>
+                                <button class="btn btn-link btn-sm text-info p-0 text-decoration-none" t-on-click="() =&gt; this.navigateToInventory('all')">
+                                    <span>View all inventory (<t t-esc="state.metrics.all_products ? state.metrics.all_products.length : 0"/> SKUs) →</span>
+                                </button>
+                            </div>
+
+                            <div class="ss-table-container">
+                                <table class="ss-table-dense">
+                                    <thead>
+                                        <tr>
+                                            <th>SKU Reference</th>
+                                            <th>Product Name</th>
+                                            <th>On Hand / Safety Min</th>
+                                            <th>Health Status</th>
+                                            <th>Primary Diagnostic Reason</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <t t-if="productsRequiringAttention and productsRequiringAttention.length &gt; 0">
+                                            <t t-foreach="productsRequiringAttention" t-as="p" t-key="p.id">
+                                                <tr>
+                                                    <td>
+                                                        <span class="ss-sku-badge"><t t-esc="p.sku"/></span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="fw-bold text-white"><t t-esc="p.name"/></span>
+                                                        <span class="ss-cat-tag ms-1" t-if="p.category_name"><t t-esc="p.category_name"/></span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="fw-bold font-monospace text-white"><t t-esc="formatNumber(p.stock)"/></span>
+                                                        <span class="text-secondary small"> / <t t-esc="formatNumber(p.min_threshold)"/> <t t-esc="p.uom"/></span>
+                                                    </td>
+                                                    <td>
+                                                        <span t-att-class="'ss-badge ' + p.health_status">
+                                                            <t t-esc="p.health_status.toUpperCase()"/> (<t t-esc="p.health_score"/>%)
+                                                        </span>
+                                                    </td>
+                                                    <td style="max-width: 260px;">
+                                                        <span class="text-secondary small text-truncate d-block" t-att-title="p.reasons">
+                                                            <t t-esc="p.reasons ? p.reasons.split('\n')[0].replace('• ', '') : 'Stock below minimum threshold.'"/>
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="d-flex align-items-center justify-content-end gap-1">
+                                                            <button class="btn btn-outline-primary ss-btn-xs" t-on-click="() =&gt; this.testInSimulator(p.id)" title="Simulate replenishment order">
+                                                                <i class="fa fa-sliders"></i> Simulate
+                                                            </button>
+                                                            <button class="btn btn-outline-info ss-btn-xs" t-on-click="() =&gt; this.openProductLedger(p.id, p.name)" title="Inspect stock ledger">
+                                                                <i class="fa fa-history"></i>
+                                                            </button>
+                                                            <button class="btn btn-outline-light ss-btn-xs" t-on-click="() =&gt; this.openProductForm(p.id)" title="Open product master">
+                                                                <i class="fa fa-external-link"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </t>
+                                        </t>
+                                        <t t-else="">
+                                            <tr>
+                                                <td colspan="6" class="text-center py-4 text-muted">
+                                                    <i class="fa fa-check-circle text-success fa-2x mb-2 d-block"></i>
+                                                    <div>All catalog products are operating within nominal safety thresholds.</div>
+                                                </td>
+                                            </tr>
+                                        </t>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activity (Compact Timeline replacing giant ledger table) -->
+                        <div class="ss-panel">
+                            <div class="ss-panel-header">
+                                <div>
+                                    <h3><i class="fa fa-history text-info"></i> Recent Activity</h3>
+                                    <span class="ss-panel-subtitle">Latest verified stock movements &amp; double-entry ledger postings</span>
+                                </div>
+                                <button class="btn btn-link btn-sm text-info p-0 text-decoration-none" t-on-click="() =&gt; this.navigateToTimeline()">
+                                    <span>View full event timeline →</span>
+                                </button>
+                            </div>
+
+                            <div class="ss-compact-activity-list">
+                                <t t-if="recentActivityEvents and recentActivityEvents.length &gt; 0">
+                                    <t t-foreach="recentActivityEvents" t-as="m" t-key="m.id">
+                                        <div class="ss-compact-activity-row">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span t-att-class="'ss-badge ' + (m.op_type === 'receipt' ? 'healthy' : (m.op_type === 'delivery' ? 'critical' : (m.op_type === 'transfer' ? 'deterministic' : 'attention')))">
+                                                    <t t-esc="m.op_type.toUpperCase()"/>
+                                                </span>
+                                                <span class="font-monospace text-muted small"><t t-esc="m.ref"/></span>
+                                                <span class="fw-bold text-white"><t t-esc="m.product_name"/></span>
+                                                <span class="ss-sku-badge"><t t-esc="m.product_sku"/></span>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-3">
+                                                <span t-att-class="'fw-bold font-monospace ' + (m.delta &gt; 0 ? 'text-success' : 'text-danger')">
+                                                    <t t-esc="m.delta &gt; 0 ? '+' : ''"/><t t-esc="formatNumber(m.delta)"/>
+                                                </span>
+                                                <span class="text-secondary small font-monospace">
+                                                    bal: <strong class="text-white"><t t-esc="formatNumber(m.balance_after)"/></strong>
+                                                </span>
+                                                <span class="text-muted small" style="font-size: 10.5px;">
+                                                    <t t-esc="m.date ? m.date.substring(11, 16) : ''"/>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </t>
+                                </t>
+                                <t t-else="">
+                                    <div class="text-muted small text-center py-3">No recent inventory activity recorded.</div>
+                                </t>
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center pt-2 mt-2 border-top border-secondary" style="font-size: 11px;">
+                                <span class="text-secondary">Double-entry stock ledger: every posting is an immutable debit/credit quant record.</span>
+                                <button class="btn btn-link btn-sm text-info p-0" t-on-click="() =&gt; this.openLedgerHistory()">
+                                    <i class="fa fa-external-link me-1"></i> Open Native Ledger
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Inventory Movement & Warehouse Status (Col 5) -->
+                    <div class="d-flex flex-column gap-4">
+                        <!-- Inventory Movement Bento Card -->
+                        <div class="ss-panel">
+                            <div class="ss-panel-header">
+                                <div>
+                                    <h3><i class="fa fa-exchange text-info"></i> Inventory Movement</h3>
+                                    <span class="ss-panel-subtitle">Verified cumulative inbound vs outbound volume</span>
+                                </div>
+                                <span class="ss-badge deterministic">
+                                    <i class="fa fa-balance-scale"></i> Invariant: Δ = In - Out
+                                </span>
+                            </div>
+
+                            <!-- 4 Real Movement Metrics -->
+                            <div class="ss-velocity-matrix mb-3">
+                                <div class="ss-vel-box" style="border-left: 3px solid var(--ss-success);">
+                                    <div class="ss-vel-label">Inbound Receipts</div>
+                                    <div class="ss-vel-val text-success">
+                                        +<t t-esc="formatNumber(state.metrics.movement_overview ? state.metrics.movement_overview.inbound_total : 0)"/>
+                                    </div>
+                                    <div class="text-muted" style="font-size: 9.5px;">Supplier Intake</div>
+                                </div>
+                                <div class="ss-vel-box" style="border-left: 3px solid var(--ss-danger);">
+                                    <div class="ss-vel-label">Outbound Dispatched</div>
+                                    <div class="ss-vel-val text-danger">
+                                        -<t t-esc="formatNumber(state.metrics.movement_overview ? state.metrics.movement_overview.outbound_total : 0)"/>
+                                    </div>
+                                    <div class="text-muted" style="font-size: 9.5px;">Customer Orders</div>
+                                </div>
+                                <div class="ss-vel-box" style="border-left: 3px solid var(--ss-info);">
+                                    <div class="ss-vel-label">Internal Transfers</div>
+                                    <div class="ss-vel-val text-info">
+                                        <t t-esc="formatNumber(state.metrics.movement_overview ? state.metrics.movement_overview.transfers_total : 0)"/>
+                                    </div>
+                                    <div class="text-muted" style="font-size: 9.5px;">Relocations (Δ=0)</div>
+                                </div>
+                                <div class="ss-vel-box" style="border-left: 3px solid var(--ss-warning);">
+                                    <div class="ss-vel-label">Cycle Adjustments</div>
+                                    <div class="ss-vel-val text-warning">
+                                        <t t-esc="formatNumber(state.metrics.movement_overview ? state.metrics.movement_overview.adjustments_total : 0)"/>
+                                    </div>
+                                    <div class="text-muted" style="font-size: 9.5px;">Audit Variance</div>
+                                </div>
+                            </div>
+
+                            <!-- Real-Data Movement Flow Bar -->
+                            <div class="ss-flow-ratio-bar">
+                                <div class="d-flex justify-content-between align-items-center small mb-1">
+                                    <span class="text-secondary fw-bold">Flow Ratio (Intake vs Dispatched):</span>
+                                    <span class="font-monospace">
+                                        <span class="text-success fw-bold">+<t t-esc="formatNumber(state.metrics.movement_overview ? state.metrics.movement_overview.inbound_total : 0)"/></span>
+                                        <span class="text-muted mx-1">/</span>
+                                        <span class="text-danger fw-bold">-<t t-esc="formatNumber(state.metrics.movement_overview ? state.metrics.movement_overview.outbound_total : 0)"/></span>
+                                    </span>
+                                </div>
+                                <div class="ss-flow-progress">
+                                    <div class="bg-success"
+                                         t-att-style="'width: ' + ((state.metrics.movement_overview &amp;&amp; (state.metrics.movement_overview.inbound_total + state.metrics.movement_overview.outbound_total) &gt; 0) ? (state.metrics.movement_overview.inbound_total / (state.metrics.movement_overview.inbound_total + state.metrics.movement_overview.outbound_total) * 100) : 50) + '%;'"
+                                         title="Inbound Receipts Proportion"/>
+                                    <div class="bg-danger"
+                                         t-att-style="'width: ' + ((state.metrics.movement_overview &amp;&amp; (state.metrics.movement_overview.inbound_total + state.metrics.movement_overview.outbound_total) &gt; 0) ? (state.metrics.movement_overview.outbound_total / (state.metrics.movement_overview.inbound_total + state.metrics.movement_overview.outbound_total) * 100) : 50) + '%;'"
+                                         title="Outbound Dispatches Proportion"/>
+                                </div>
+                                <div class="d-flex justify-content-between text-muted" style="font-size: 10px;">
+                                    <span>Receipts: <t t-esc="formatNumber(state.metrics.movement_overview ? state.metrics.movement_overview.inbound_total : 0)"/> units</span>
+                                    <span>Deliveries: <t t-esc="formatNumber(state.metrics.movement_overview ? state.metrics.movement_overview.outbound_total : 0)"/> units</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Warehouse Status Card -->
+                        <div class="ss-panel">
+                            <div class="ss-panel-header">
+                                <div>
+                                    <h3><i class="fa fa-building text-primary"></i> Warehouse Status</h3>
+                                    <span class="ss-panel-subtitle">Facility physical balance &amp; posture</span>
+                                </div>
+                                <button class="btn btn-link btn-sm text-info p-0 text-decoration-none" t-on-click="() =&gt; this.navigateToFlow()">
+                                    <span>Flow Map →</span>
+                                </button>
+                            </div>
+
+                            <div class="ss-warehouse-card-list">
+                                <t t-foreach="state.metrics.warehouse_stats || []" t-as="wh" t-key="wh.id">
+                                    <div class="ss-wh-status-item" t-on-click="() =&gt; this.navigateToInventory('all', wh.code)" title="Click to filter inventory by this warehouse">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="ss-badge neutral"><t t-esc="wh.code"/></span>
+                                                <span class="fw-bold text-white"><t t-esc="wh.name"/></span>
+                                            </div>
+                                            <span t-att-class="wh.critical_count &gt; 0 ? 'ss-badge critical' : 'ss-badge healthy'">
+                                                <t t-if="wh.critical_count &gt; 0">
+                                                    <i class="fa fa-warning"></i> <t t-esc="wh.critical_count"/> Critical
+                                                </t>
+                                                <t t-else="">
+                                                    <i class="fa fa-check"></i> Nominal
+                                                </t>
+                                            </span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center text-muted small">
+                                            <span>Physical Stock: <strong class="text-white font-monospace"><t t-esc="formatNumber(wh.total_stock)"/></strong> units</span>
+                                            <span>Active: <strong class="text-secondary font-monospace"><t t-esc="wh.sku_count"/></strong> SKUs</span>
+                                        </div>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </t>
+
+            <!-- ==================================================================== -->
+            <!-- TAB 2: PRODUCT INVENTORY & STOCK CATALOG (DEDICATED INVENTORY PAGE) -->
+            <!-- ==================================================================== -->
+            <t t-if="state.activeTab === 'inventory'">
+                <div class="ss-panel">
                     <div class="ss-panel-header">
                         <div>
-                            <h3><i class="fa fa-table text-primary"></i> Product Inventory &amp; Stock Buffer Telemetry</h3>
-                            <span class="ss-panel-subtitle">Real physical quants, safety buffers, valuations, and double-entry traceability</span>
+                            <h3><i class="fa fa-boxes text-primary"></i> Product Inventory &amp; Stock Buffer Telemetry</h3>
+                            <span class="ss-panel-subtitle">High-Density Catalog, Safety Buffers, Unit Valuation, and Traceability</span>
                         </div>
                         <div class="d-flex align-items-center gap-3">
+                            <!-- Warehouse Filter Dropdown -->
+                            <div class="ss-header-control">
+                                <i class="fa fa-building text-secondary"></i>
+                                <select class="ss-header-select" t-att-value="state.warehouseFilter" t-on-change="onWarehouseFilterChange">
+                                    <option value="all">All Facilities</option>
+                                    <t t-foreach="state.metrics.warehouse_stats || []" t-as="wh" t-key="wh.id">
+                                        <option t-att-value="wh.code">
+                                            <t t-esc="wh.code"/> (<t t-esc="wh.name"/>)
+                                        </option>
+                                    </t>
+                                </select>
+                            </div>
+
+                            <!-- Search Input -->
                             <div class="ss-search-wrap">
                                 <i class="fa fa-search"></i>
                                 <input type="text" placeholder="Filter SKU, Product, Category..."
@@ -219,12 +593,46 @@
                         </div>
                     </div>
 
+                    <!-- Health Filter Strip (Linear Style) -->
+                    <div class="ss-health-filter-strip">
+                        <div class="ss-filter-lozenge-group">
+                            <span class="text-muted small me-1">Health State:</span>
+                            <button class="ss-filter-lozenge" t-att-class="{active: state.productHealthFilter === 'all'}" t-on-click="() =&gt; this.setProductHealthFilter('all')">
+                                All SKUs (<t t-esc="state.metrics.all_products ? state.metrics.all_products.length : 0"/>)
+                            </button>
+                            <button class="ss-filter-lozenge critical" t-att-class="{active: state.productHealthFilter === 'critical'}" t-on-click="() =&gt; this.setProductHealthFilter('critical')">
+                                <i class="fa fa-circle text-danger"></i> Critical (<t t-esc="state.metrics.health_distribution ? state.metrics.health_distribution.critical_count : 0"/>)
+                            </button>
+                            <button class="ss-filter-lozenge attention" t-att-class="{active: state.productHealthFilter === 'attention'}" t-on-click="() =&gt; this.setProductHealthFilter('attention')">
+                                <i class="fa fa-circle text-warning"></i> Attention (<t t-esc="state.metrics.health_distribution ? state.metrics.health_distribution.attention_count : 0"/>)
+                            </button>
+                            <button class="ss-filter-lozenge healthy" t-att-class="{active: state.productHealthFilter === 'healthy'}" t-on-click="() =&gt; this.setProductHealthFilter('healthy')">
+                                <i class="fa fa-circle text-success"></i> Healthy (<t t-esc="state.metrics.health_distribution ? state.metrics.health_distribution.healthy_count : 0"/>)
+                            </button>
+                        </div>
+
+                        <!-- Active Filters Tag -->
+                        <div class="d-flex align-items-center gap-2" t-if="state.warehouseFilter !== 'all' or state.productSearch">
+                            <span class="text-muted small">Active Filters:</span>
+                            <span class="badge bg-secondary" t-if="state.warehouseFilter !== 'all'">
+                                Facility: <t t-esc="state.warehouseFilter"/>
+                                <i class="fa fa-times ms-1" style="cursor: pointer;" t-on-click="() =&gt; this.setWarehouseFilter('all')"></i>
+                            </span>
+                            <span class="badge bg-secondary" t-if="state.productSearch">
+                                Search: "<t t-esc="state.productSearch"/>"
+                                <i class="fa fa-times ms-1" style="cursor: pointer;" t-on-click="clearProductSearch"></i>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Full High-Density Table -->
                     <div class="ss-table-container">
                         <table class="ss-table-dense">
                             <thead>
                                 <tr>
                                     <th>SKU Reference</th>
                                     <th>Product Name &amp; Category</th>
+                                    <th>Facility / Location</th>
                                     <th>Physical On Hand</th>
                                     <th>Safety Buffer Visualizer</th>
                                     <th>Thresholds (Min/Max)</th>
@@ -248,9 +656,13 @@
                                                     <t t-esc="p.name"/>
                                                     <span class="ss-cat-tag" t-if="p.category_name"><t t-esc="p.category_name"/></span>
                                                 </div>
-                                                <div class="text-muted" style="font-size: 10px;" t-if="p.preferred_location">
-                                                    <i class="fa fa-map-marker me-1"></i><t t-esc="p.preferred_location"/>
-                                                </div>
+                                            </td>
+
+                                            <!-- Facility & Location -->
+                                            <td>
+                                                <span class="ss-badge neutral" t-if="p.warehouse_code"><t t-esc="p.warehouse_code"/></span>
+                                                <span class="text-secondary small ms-1" t-if="p.preferred_location"><t t-esc="p.preferred_location"/></span>
+                                                <span class="text-muted small" t-if="!p.preferred_location and !p.warehouse_code">General</span>
                                             </td>
 
                                             <!-- Physical Stock -->
@@ -337,259 +749,15 @@
                                 </t>
                                 <t t-else="">
                                     <tr>
-                                        <td colspan="8" class="text-center py-4 text-muted">
+                                        <td colspan="9" class="text-center py-4 text-muted">
                                             <i class="fa fa-search fa-2x mb-2 d-block opacity-50"></i>
-                                            <div>No products match filter: <strong>"<t t-esc="state.productSearch"/>"</strong></div>
+                                            <div>No products match current filter criteria.</div>
                                             <button class="btn btn-link btn-sm text-info mt-1" t-on-click="clearProductSearch">Reset Filters</button>
                                         </td>
                                     </tr>
                                 </t>
                             </tbody>
                         </table>
-                    </div>
-                </div>
-
-                <!-- Bento Split Grid: Real-Data Movement Visualization (Col 7) vs Operational Alerts & Warehouse Distribution (Col 5) -->
-                <div class="ss-bento-split-grid">
-                    <!-- Left: Real-Data Movement Visualization & Flow Velocity (Col 7) -->
-                    <div>
-                        <!-- Movement Velocity Matrix -->
-                        <div class="ss-panel">
-                            <div class="ss-panel-header">
-                                <div>
-                                    <h3><i class="fa fa-exchange text-info"></i> Inventory Movement Flow &amp; Velocity</h3>
-                                    <span class="ss-panel-subtitle">Cumulative Inbound Receipts vs Outbound Dispatches</span>
-                                </div>
-                                <span class="ss-badge deterministic">
-                                    <i class="fa fa-balance-scale"></i> Double-Entry Invariance
-                                </span>
-                            </div>
-
-                            <!-- 4 Real Movement Metrics -->
-                            <div class="ss-velocity-matrix">
-                                <div class="ss-vel-box" style="border-left: 3px solid var(--ss-success);">
-                                    <div class="ss-vel-label">Inbound Received</div>
-                                    <div class="ss-vel-val text-success">
-                                        +<t t-esc="formatNumber(state.metrics.movement_overview ? state.metrics.movement_overview.inbound_total : 0)"/>
-                                    </div>
-                                    <div class="text-muted" style="font-size: 9.5px;">Supplier Receipts</div>
-                                </div>
-                                <div class="ss-vel-box" style="border-left: 3px solid var(--ss-danger);">
-                                    <div class="ss-vel-label">Outbound Dispatched</div>
-                                    <div class="ss-vel-val text-danger">
-                                        -<t t-esc="formatNumber(state.metrics.movement_overview ? state.metrics.movement_overview.outbound_total : 0)"/>
-                                    </div>
-                                    <div class="text-muted" style="font-size: 9.5px;">Customer Orders</div>
-                                </div>
-                                <div class="ss-vel-box" style="border-left: 3px solid var(--ss-info);">
-                                    <div class="ss-vel-label">Inter-Warehouse</div>
-                                    <div class="ss-vel-val text-info">
-                                        <t t-esc="formatNumber(state.metrics.movement_overview ? state.metrics.movement_overview.transfers_total : 0)"/>
-                                    </div>
-                                    <div class="text-muted" style="font-size: 9.5px;">Relocations (Δ=0)</div>
-                                </div>
-                                <div class="ss-vel-box" style="border-left: 3px solid var(--ss-warning);">
-                                    <div class="ss-vel-label">Variance Adjustments</div>
-                                    <div class="ss-vel-val text-warning">
-                                        <t t-esc="formatNumber(state.metrics.movement_overview ? state.metrics.movement_overview.adjustments_total : 0)"/>
-                                    </div>
-                                    <div class="text-muted" style="font-size: 9.5px;">Physical Audit Count</div>
-                                </div>
-                            </div>
-
-                            <!-- Real-Data Movement Flow Bar -->
-                            <div class="ss-flow-ratio-bar">
-                                <div class="d-flex justify-content-between align-items-center small mb-1">
-                                    <span class="text-secondary fw-bold">Flow Ratio (Inbound vs Outbound):</span>
-                                    <span class="font-monospace">
-                                        <span class="text-success fw-bold">+<t t-esc="formatNumber(state.metrics.movement_overview ? state.metrics.movement_overview.inbound_total : 0)"/> in</span>
-                                        <span class="text-muted mx-1">/</span>
-                                        <span class="text-danger fw-bold">-<t t-esc="formatNumber(state.metrics.movement_overview ? state.metrics.movement_overview.outbound_total : 0)"/> out</span>
-                                    </span>
-                                </div>
-                                <div class="ss-flow-progress">
-                                    <div class="bg-success"
-                                         t-att-style="'width: ' + ((state.metrics.movement_overview &amp;&amp; (state.metrics.movement_overview.inbound_total + state.metrics.movement_overview.outbound_total) &gt; 0) ? (state.metrics.movement_overview.inbound_total / (state.metrics.movement_overview.inbound_total + state.metrics.movement_overview.outbound_total) * 100) : 50) + '%;'"
-                                         title="Inbound Receipts Proportion"/>
-                                    <div class="bg-danger"
-                                         t-att-style="'width: ' + ((state.metrics.movement_overview &amp;&amp; (state.metrics.movement_overview.inbound_total + state.metrics.movement_overview.outbound_total) &gt; 0) ? (state.metrics.movement_overview.outbound_total / (state.metrics.movement_overview.inbound_total + state.metrics.movement_overview.outbound_total) * 100) : 50) + '%;'"
-                                         title="Outbound Dispatches Proportion"/>
-                                </div>
-                                <div class="d-flex justify-content-between text-muted" style="font-size: 10px;">
-                                    <span>Total Intake: <t t-esc="formatNumber(state.metrics.movement_overview ? state.metrics.movement_overview.inbound_total : 0)"/> units</span>
-                                    <span>Total Dispatched: <t t-esc="formatNumber(state.metrics.movement_overview ? state.metrics.movement_overview.outbound_total : 0)"/> units</span>
-                                </div>
-                            </div>
-
-                            <!-- Live Double-Entry Movement Stream Table -->
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-white small fw-bold">Recent Stock Ledger Entries (Live Audit Stream)</span>
-                                <button class="btn btn-link btn-sm text-info p-0" t-on-click="() =&gt; this.openLedgerHistory()">
-                                    <i class="fa fa-external-link me-1"></i> Full Ledger
-                                </button>
-                            </div>
-
-                            <t t-if="state.metrics.recent_movements &amp;&amp; state.metrics.recent_movements.length &gt; 0">
-                                <div class="ss-table-container">
-                                    <table class="ss-table-dense">
-                                        <thead>
-                                            <tr>
-                                                <th>Type</th>
-                                                <th>Ref</th>
-                                                <th>Product</th>
-                                                <th>Δ Quantity</th>
-                                                <th>Resulting Balance</th>
-                                                <th>User</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <t t-foreach="state.metrics.recent_movements.slice(0, 6)" t-as="m" t-key="m.id">
-                                                <tr>
-                                                    <td>
-                                                        <span t-att-class="'ss-badge ' + (m.op_type === 'receipt' ? 'healthy' : (m.op_type === 'delivery' ? 'critical' : (m.op_type === 'transfer' ? 'deterministic' : 'attention')))">
-                                                            <t t-esc="m.op_type.toUpperCase()"/>
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <span class="font-monospace small text-muted"><t t-esc="m.ref"/></span>
-                                                    </td>
-                                                    <td>
-                                                        <span class="fw-bold text-white"><t t-esc="m.product_name"/></span>
-                                                        <span class="text-muted small ms-1">(<t t-esc="m.product_sku"/>)</span>
-                                                    </td>
-                                                    <td>
-                                                        <span t-att-class="'fw-bold font-monospace ' + (m.delta &gt; 0 ? 'text-success' : 'text-danger')">
-                                                            <t t-esc="m.delta &gt; 0 ? '+' : ''"/><t t-esc="m.delta"/>
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <span class="font-monospace text-white"><t t-esc="m.balance_after"/></span>
-                                                    </td>
-                                                    <td>
-                                                        <span class="text-secondary small"><t t-esc="m.user"/></span>
-                                                    </td>
-                                                </tr>
-                                            </t>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </t>
-                            <t t-else="">
-                                <div class="text-muted small text-center py-3">No recent movements recorded.</div>
-                            </t>
-                        </div>
-                    </div>
-
-                    <!-- Right: Operational Alerts & Warehouse Distribution (Col 5) -->
-                    <div>
-                        <!-- Operational Alert Center -->
-                        <div class="ss-panel mb-4">
-                            <div class="ss-panel-header">
-                                <div>
-                                    <h3><i class="fa fa-bell text-warning"></i> Operational Alerts &amp; Deficits</h3>
-                                    <span class="ss-panel-subtitle">Active Threshold Breaches &amp; Causal Diagnosis</span>
-                                </div>
-                                <span class="badge bg-danger" t-if="state.metrics.operational_intelligence and state.metrics.operational_intelligence.active_alerts.length &gt; 0">
-                                    <t t-esc="state.metrics.operational_intelligence.active_alerts.length"/> Active
-                                </span>
-                            </div>
-
-                            <div class="ss-alert-list">
-                                <t t-if="state.metrics.operational_intelligence &amp;&amp; state.metrics.operational_intelligence.active_alerts &amp;&amp; state.metrics.operational_intelligence.active_alerts.length &gt; 0">
-                                    <t t-foreach="state.metrics.operational_intelligence.active_alerts" t-as="alert" t-key="alert.id">
-                                        <div t-att-class="'ss-alert-item-card ' + alert.severity">
-                                            <div class="ss-alert-item-header">
-                                                <span class="ss-alert-item-title">
-                                                    <span class="ss-sku-badge me-1"><t t-esc="alert.product_sku"/></span>
-                                                    <t t-esc="alert.product_name"/>
-                                                </span>
-                                                <span t-att-class="'ss-badge ' + alert.severity">
-                                                    <t t-esc="alert.severity.toUpperCase()"/>
-                                                </span>
-                                            </div>
-                                            <div class="ss-alert-item-reason">
-                                                <t t-esc="alert.reason"/>
-                                            </div>
-                                            <div class="ss-alert-item-footer">
-                                                <span>
-                                                    Stock: <strong class="text-white"><t t-esc="alert.current_quantity"/></strong> units · 
-                                                    Threshold: <strong class="text-warning"><t t-esc="alert.threshold"/></strong>
-                                                </span>
-                                                <div class="d-flex gap-1">
-                                                    <button class="btn btn-outline-primary ss-btn-xs"
-                                                            t-if="alert.product_id"
-                                                            t-on-click="() =&gt; this.testInSimulator(alert.product_id)"
-                                                            title="Simulate replenishment order">
-                                                        <i class="fa fa-sliders"></i> Simulate
-                                                    </button>
-                                                    <button class="btn btn-outline-info ss-btn-xs"
-                                                            t-if="alert.product_id"
-                                                            t-on-click="() =&gt; this.openProductLedger(alert.product_id, alert.product_name)"
-                                                            title="Inspect Ledger">
-                                                        <i class="fa fa-history"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </t>
-                                </t>
-                                <t t-else="">
-                                    <div class="ss-empty-state py-3">
-                                        <i class="fa fa-check-circle text-success fa-2x mb-2 d-block"></i>
-                                        <div class="ss-empty-title">All SKUs in Nominal State</div>
-                                        <div class="ss-empty-desc">No active threshold breaches or delivery deficit attempts detected.</div>
-                                    </div>
-                                </t>
-                            </div>
-                        </div>
-
-                        <!-- Multi-Warehouse Facility Distribution -->
-                        <div class="ss-panel">
-                            <div class="ss-panel-header">
-                                <div>
-                                    <h3><i class="fa fa-building text-primary"></i> Warehouse Facility Distribution</h3>
-                                    <span class="ss-panel-subtitle">Storage Capacity &amp; Stored Units</span>
-                                </div>
-                            </div>
-                            <div class="ss-table-container">
-                                <table class="ss-table-dense">
-                                    <thead>
-                                        <tr>
-                                            <th>Facility</th>
-                                            <th>On-Hand</th>
-                                            <th>SKUs</th>
-                                            <th>Posture</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <t t-foreach="state.metrics.warehouse_stats || []" t-as="wh" t-key="wh.id">
-                                            <tr>
-                                                <td>
-                                                    <span class="ss-badge neutral me-1"><t t-esc="wh.code"/></span>
-                                                    <span class="fw-bold text-white"><t t-esc="wh.name"/></span>
-                                                </td>
-                                                <td>
-                                                    <span class="font-monospace fw-bold text-white"><t t-esc="wh.total_stock"/></span> units
-                                                </td>
-                                                <td>
-                                                    <span class="font-monospace text-secondary"><t t-esc="wh.sku_count"/></span> SKUs
-                                                </td>
-                                                <td>
-                                                    <span t-att-class="wh.critical_count &gt; 0 ? 'ss-badge critical' : 'ss-badge healthy'">
-                                                        <t t-if="wh.critical_count &gt; 0">
-                                                            <i class="fa fa-warning"></i> <t t-esc="wh.critical_count"/> Critical
-                                                        </t>
-                                                        <t t-else="">
-                                                            <i class="fa fa-check"></i> Nominal
-                                                        </t>
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        </t>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </t>

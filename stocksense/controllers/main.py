@@ -59,8 +59,13 @@ class StocksenseDashboardController(http.Controller):
         ]
 
         # Critical / Attention Products
-        critical_products = [
-            {
+        critical_products = []
+        for p in products.filtered(lambda p: p.health_status in ['attention', 'critical']):
+            wh_names = list(set(filter(None, p.quant_ids.mapped('location_id.warehouse_id.name'))))
+            wh_codes = list(set(filter(None, p.quant_ids.mapped('location_id.warehouse_id.code'))))
+            wh_name = wh_names[0] if wh_names else (p.preferred_location_id.warehouse_id.name if p.preferred_location_id and p.preferred_location_id.warehouse_id else 'WH-MAIN')
+            wh_code = wh_codes[0] if wh_codes else (p.preferred_location_id.warehouse_id.code if p.preferred_location_id and p.preferred_location_id.warehouse_id else 'WH')
+            critical_products.append({
                 'id': p.id,
                 'name': p.name,
                 'sku': p.sku,
@@ -76,10 +81,11 @@ class StocksenseDashboardController(http.Controller):
                 'health_status': p.health_status,
                 'health_score': p.health_score,
                 'reasons': p.health_reasons,
-                'days_of_inventory': round(p.days_of_inventory, 1) if p.days_of_inventory else None
-            }
-            for p in products.filtered(lambda p: p.health_status in ['attention', 'critical'])
-        ]
+                'days_of_inventory': round(p.days_of_inventory, 1) if p.days_of_inventory else None,
+                'preferred_location': p.preferred_location_id.name if p.preferred_location_id else '',
+                'warehouse_name': wh_name,
+                'warehouse_code': wh_code
+            })
 
         # Warehouse Breakdown
         warehouses = request.env['stocksense.warehouse'].search([])
@@ -161,9 +167,18 @@ class StocksenseDashboardController(http.Controller):
             for b in recent_blocks
         ]
 
-        # All Products for Simulator and Overview
-        all_products_list = [
-            {
+        # All Products for Simulator, Inventory Page, and Overview
+        all_products_list = []
+        for p in products:
+            wh_ids = list(set(filter(None, p.quant_ids.mapped('location_id.warehouse_id.id'))))
+            if not wh_ids and p.preferred_location_id and p.preferred_location_id.warehouse_id:
+                wh_ids = [p.preferred_location_id.warehouse_id.id]
+            wh_names = list(set(filter(None, p.quant_ids.mapped('location_id.warehouse_id.name'))))
+            wh_codes = list(set(filter(None, p.quant_ids.mapped('location_id.warehouse_id.code'))))
+            wh_name = wh_names[0] if wh_names else (p.preferred_location_id.warehouse_id.name if p.preferred_location_id and p.preferred_location_id.warehouse_id else 'WH-MAIN')
+            wh_code = wh_codes[0] if wh_codes else (p.preferred_location_id.warehouse_id.code if p.preferred_location_id and p.preferred_location_id.warehouse_id else 'WH')
+
+            all_products_list.append({
                 'id': p.id,
                 'name': p.name,
                 'sku': p.sku,
@@ -181,9 +196,10 @@ class StocksenseDashboardController(http.Controller):
                 'reasons': p.health_reasons,
                 'days_of_inventory': round(p.days_of_inventory, 1) if p.days_of_inventory else None,
                 'preferred_location': p.preferred_location_id.name if p.preferred_location_id else '',
-            }
-            for p in products
-        ]
+                'warehouse_ids': wh_ids,
+                'warehouse_name': wh_name,
+                'warehouse_code': wh_code
+            })
 
         # Open alerts detail
         open_alerts_list = [

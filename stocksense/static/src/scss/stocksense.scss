@@ -1120,3 +1120,376 @@
   color: var(--ss-text-muted);
 }
 
+/* ==========================================================================
+   ENTERPRISE COMMAND CENTER: PROGRESSIVE DISCLOSURE & BENTO HIERARCHY
+   ========================================================================== */
+
+/* Top Header Actions Strip */
+.ss-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ss-header-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius-sm);
+  padding: 4px 10px;
+  transition: border-color 0.15s ease;
+}
+
+.ss-header-control:hover {
+  border-color: var(--ss-border-light);
+}
+
+.ss-header-select {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+}
+
+.ss-header-select option {
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.ss-global-search-wrap {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius-sm);
+  padding: 4px 10px;
+  min-width: 220px;
+  transition: all 0.15s ease;
+}
+
+.ss-global-search-wrap:focus-within {
+  border-color: var(--ss-primary);
+  box-shadow: 0 0 8px var(--ss-primary-glow);
+}
+
+.ss-global-search-input {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 12px;
+  width: 100%;
+  outline: none;
+  margin-left: 6px;
+}
+
+.ss-global-search-input::placeholder {
+  color: #64748b;
+}
+
+/* Level 1: Primary Inventory Health Hero & Operational Focus Grid */
+.ss-hero-grid {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 1050px) {
+  .ss-hero-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ss-hero-card {
+  background: var(--ss-surface);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius-md);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.ss-hero-card.health-hero {
+  background: linear-gradient(135deg, rgba(21, 30, 50, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border-color: rgba(99, 102, 241, 0.28);
+}
+
+.ss-hero-card.op-focus-hero {
+  background: linear-gradient(135deg, rgba(21, 30, 50, 0.95) 0%, rgba(30, 20, 25, 0.9) 100%);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.ss-hero-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.ss-hero-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+}
+
+.ss-hero-subtitle {
+  font-size: 11.5px;
+  color: var(--ss-text-muted);
+  display: block;
+  margin-top: 2px;
+}
+
+.ss-hero-metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ss-hero-metric-val {
+  font-size: 38px;
+  font-weight: 800;
+  line-height: 1;
+  font-family: var(--ss-font-mono);
+  letter-spacing: -0.02em;
+}
+
+.ss-hero-metric-unit {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ss-text-muted);
+  margin-left: 4px;
+}
+
+.ss-hero-metric-label {
+  font-size: 11.5px;
+  color: var(--ss-text-muted);
+  margin-top: 6px;
+}
+
+.ss-hero-sub-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: right;
+}
+
+.ss-sub-stat {
+  font-size: 12px;
+}
+
+.ss-health-dist-box {
+  margin-top: 4px;
+}
+
+.ss-health-chips-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.ss-health-chip {
+  border: 1px solid var(--ss-border);
+  background: rgba(11, 15, 25, 0.7);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.ss-health-chip:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--ss-border-light);
+  transform: translateY(-1px);
+}
+
+.ss-hero-footer {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Operational Focus List */
+.ss-op-focus-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-grow: 1;
+}
+
+.ss-op-focus-item {
+  background: rgba(11, 15, 25, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 10px 12px;
+  transition: all 0.15s ease;
+}
+
+.ss-op-focus-item:hover {
+  border-color: var(--ss-border-light);
+  background: rgba(11, 15, 25, 0.85);
+}
+
+.ss-op-focus-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.ss-op-focus-item-mid {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ss-op-focus-stock {
+  font-size: 12px;
+}
+
+.ss-op-focus-reason {
+  font-size: 11px;
+  color: #fbbf24;
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Level 1.5: Secondary Metrics Bar (Sleek Compact Strip) */
+.ss-secondary-metrics-bar {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 1200px) {
+  .ss-secondary-metrics-bar {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .ss-secondary-metrics-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.ss-sec-metric-item {
+  background: var(--ss-surface);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius-sm);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ss-sec-metric-item:hover {
+  border-color: var(--ss-border-light);
+  transform: translateY(-1px);
+  background: var(--ss-surface-hover);
+}
+
+.ss-sec-metric-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.ss-sec-metric-icon.blue { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+.ss-sec-metric-icon.green { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+.ss-sec-metric-icon.red { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+.ss-sec-metric-icon.yellow { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+.ss-sec-metric-icon.cyan { background: rgba(6, 182, 212, 0.15); color: #38bdf8; }
+.ss-sec-metric-icon.purple { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+
+.ss-sec-metric-val {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #ffffff;
+  font-family: var(--ss-font-mono);
+}
+
+.ss-sec-metric-label {
+  font-size: 10.5px;
+  color: var(--ss-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+/* Compact Activity Feed */
+.ss-compact-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ss-compact-activity-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(11, 15, 25, 0.45);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.12s ease;
+}
+
+.ss-compact-activity-row:hover {
+  background: rgba(11, 15, 25, 0.75);
+}
+
+/* Warehouse Card Overview */
+.ss-warehouse-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ss-wh-status-item {
+  padding: 12px 14px;
+  background: rgba(11, 15, 25, 0.6);
+  border: 1px solid var(--ss-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ss-wh-status-item:hover {
+  border-color: var(--ss-border-light);
+  background: rgba(11, 15, 25, 0.85);
+  transform: translateY(-1px);
+}
+

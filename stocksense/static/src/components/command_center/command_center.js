@@ -14,6 +14,7 @@ export class StocksenseCommandCenter extends Component {
             activeTab: "overview",
             productSearch: "",
             productHealthFilter: "all",
+            warehouseFilter: "all",
             metrics: {
                 kpis: {},
                 movement_overview: {},
@@ -76,12 +77,48 @@ export class StocksenseCommandCenter extends Component {
         this.state.activeTab = tab;
     }
 
+    navigateToInventory(healthFilter = "all", warehouseFilter = "all") {
+        this.state.productHealthFilter = healthFilter;
+        if (warehouseFilter !== undefined) {
+            this.state.warehouseFilter = warehouseFilter;
+        }
+        this.state.activeTab = "inventory";
+    }
+
+    navigateToAlerts() {
+        this.state.activeTab = "intel";
+    }
+
+    navigateToTimeline() {
+        this.state.activeTab = "timeline";
+    }
+
+    navigateToFlow() {
+        this.state.activeTab = "flow";
+    }
+
     setProductHealthFilter(filter) {
         this.state.productHealthFilter = filter;
     }
 
+    setWarehouseFilter(whCode) {
+        this.state.warehouseFilter = whCode;
+    }
+
+    onWarehouseFilterChange(ev) {
+        this.state.warehouseFilter = ev.target.value;
+    }
+
     onProductSearchInput(ev) {
         this.state.productSearch = (ev.target.value || "").toLowerCase().trim();
+    }
+
+    onGlobalSearch(ev) {
+        const val = (ev.target.value || "").trim();
+        this.state.productSearch = val.toLowerCase();
+        if (val && this.state.activeTab === "overview") {
+            this.state.activeTab = "inventory";
+        }
     }
 
     clearProductSearch() {
@@ -90,12 +127,21 @@ export class StocksenseCommandCenter extends Component {
 
     get filteredProducts() {
         const products = this.state.metrics.all_products || [];
-        const filter = this.state.productHealthFilter;
+        const healthFilter = this.state.productHealthFilter;
+        const whFilter = this.state.warehouseFilter;
         const search = this.state.productSearch;
 
         return products.filter((p) => {
-            if (filter !== "all" && p.health_status !== filter) {
+            if (healthFilter !== "all" && p.health_status !== healthFilter) {
                 return false;
+            }
+            if (whFilter !== "all") {
+                const matchesWhCode = p.warehouse_code === whFilter;
+                const matchesWhName = p.warehouse_name === whFilter;
+                const matchesWhId = p.warehouse_ids && p.warehouse_ids.includes(parseInt(whFilter));
+                if (!matchesWhCode && !matchesWhName && !matchesWhId) {
+                    return false;
+                }
             }
             if (search) {
                 const name = (p.name || "").toLowerCase();
@@ -107,6 +153,25 @@ export class StocksenseCommandCenter extends Component {
             }
             return true;
         });
+    }
+
+    get productsRequiringAttention() {
+        const products = this.state.metrics.all_products || [];
+        return products.filter((p) => p.health_status === "critical" || p.health_status === "attention");
+    }
+
+    get operationalFocusItems() {
+        const items = this.productsRequiringAttention;
+        return [...items].sort((a, b) => {
+            if (a.health_status === "critical" && b.health_status !== "critical") return -1;
+            if (b.health_status === "critical" && a.health_status !== "critical") return 1;
+            return a.stock - b.stock;
+        }).slice(0, 3);
+    }
+
+    get recentActivityEvents() {
+        const list = this.state.metrics.recent_movements || [];
+        return list.slice(0, 5);
     }
 
     formatCurrency(val) {
@@ -262,4 +327,3 @@ export class StocksenseCommandCenter extends Component {
 
 StocksenseCommandCenter.template = "stocksense.CommandCenter";
 registry.category("actions").add("stocksense_command_center_view", StocksenseCommandCenter);
-
