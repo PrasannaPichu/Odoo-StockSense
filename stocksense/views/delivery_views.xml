@@ -74,10 +74,38 @@
         </field>
     </record>
 
+    <record id="view_stocksense_delivery_search" model="ir.ui.view">
+        <field name="name">stocksense.delivery.search</field>
+        <field name="model">stocksense.delivery</field>
+        <field name="arch" type="xml">
+            <search string="Search Delivery Orders">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="warehouse_id"/>
+                <field name="location_src_id"/>
+                <separator/>
+                <filter string="Pending Fulfillment (Draft, Confirmed, Assigned)" name="filter_pending" domain="[('state', 'in', ['draft', 'confirmed', 'assigned'])]"/>
+                <filter string="Reserved / Picked" name="filter_assigned" domain="[('state', '=', 'assigned')]"/>
+                <filter string="Dispatched / Delivered" name="filter_validated" domain="[('state', '=', 'validated')]"/>
+                <filter string="Draft" name="filter_draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Cancelled" name="filter_cancelled" domain="[('state', '=', 'cancelled')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Customer / Recipient" name="group_partner" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Warehouse" name="group_warehouse" context="{'group_by': 'warehouse_id'}"/>
+                    <filter string="Source Location" name="group_location" context="{'group_by': 'location_src_id'}"/>
+                    <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="Dispatch Date" name="group_date" context="{'group_by': 'date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
     <record id="action_stocksense_deliveries" model="ir.actions.act_window">
         <field name="name">Delivery Orders</field>
         <field name="res_model">stocksense.delivery</field>
         <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_stocksense_delivery_search"/>
+        <field name="context">{'search_default_filter_pending': 1}</field>
     </record>
 
     <menuitem id="menu_stocksense_deliveries_action"

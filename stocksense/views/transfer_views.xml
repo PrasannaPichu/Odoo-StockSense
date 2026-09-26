@@ -70,10 +70,40 @@
         </field>
     </record>
 
+    <record id="view_stocksense_transfer_search" model="ir.ui.view">
+        <field name="name">stocksense.transfer.search</field>
+        <field name="model">stocksense.transfer</field>
+        <field name="arch" type="xml">
+            <search string="Search Internal Transfers">
+                <field name="name"/>
+                <field name="location_src_id"/>
+                <field name="location_dest_id"/>
+                <field name="warehouse_src_id"/>
+                <field name="warehouse_dest_id"/>
+                <separator/>
+                <filter string="Active / In Transit" name="filter_in_transit" domain="[('state', '=', 'in_transit')]"/>
+                <filter string="Pending (Draft &amp; In Transit)" name="filter_pending" domain="[('state', 'in', ['draft', 'in_transit'])]"/>
+                <filter string="Completed &amp; Stored" name="filter_completed" domain="[('state', '=', 'completed')]"/>
+                <filter string="Draft" name="filter_draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Cancelled" name="filter_cancelled" domain="[('state', '=', 'cancelled')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Source Location" name="group_src_loc" context="{'group_by': 'location_src_id'}"/>
+                    <filter string="Destination Location" name="group_dest_loc" context="{'group_by': 'location_dest_id'}"/>
+                    <filter string="Origin Warehouse" name="group_src_wh" context="{'group_by': 'warehouse_src_id'}"/>
+                    <filter string="Destination Warehouse" name="group_dest_wh" context="{'group_by': 'warehouse_dest_id'}"/>
+                    <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="Transfer Date" name="group_date" context="{'group_by': 'date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
     <record id="action_stocksense_transfers" model="ir.actions.act_window">
         <field name="name">Internal Transfers</field>
         <field name="res_model">stocksense.transfer</field>
         <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_stocksense_transfer_search"/>
+        <field name="context">{'search_default_filter_pending': 1}</field>
     </record>
 
     <menuitem id="menu_stocksense_transfers_action"

@@ -71,10 +71,38 @@
         </field>
     </record>
 
+    <record id="view_stocksense_receipt_search" model="ir.ui.view">
+        <field name="name">stocksense.receipt.search</field>
+        <field name="model">stocksense.receipt</field>
+        <field name="arch" type="xml">
+            <search string="Search Goods Receipts">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="warehouse_id"/>
+                <field name="location_dest_id"/>
+                <separator/>
+                <filter string="Pending (Draft &amp; Confirmed)" name="filter_pending" domain="[('state', 'in', ['draft', 'confirmed'])]"/>
+                <filter string="Validated" name="filter_validated" domain="[('state', '=', 'validated')]"/>
+                <filter string="Draft" name="filter_draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Confirmed" name="filter_confirmed" domain="[('state', '=', 'confirmed')]"/>
+                <filter string="Cancelled" name="filter_cancelled" domain="[('state', '=', 'cancelled')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Supplier / Partner" name="group_partner" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Warehouse" name="group_warehouse" context="{'group_by': 'warehouse_id'}"/>
+                    <filter string="Destination Location" name="group_location" context="{'group_by': 'location_dest_id'}"/>
+                    <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="Receipt Date" name="group_date" context="{'group_by': 'date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
     <record id="action_stocksense_receipts" model="ir.actions.act_window">
         <field name="name">Goods Receipts</field>
         <field name="res_model">stocksense.receipt</field>
         <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_stocksense_receipt_search"/>
+        <field name="context">{'search_default_filter_pending': 1}</field>
     </record>
 
     <menuitem id="menu_stocksense_receipts_action"

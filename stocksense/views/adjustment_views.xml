@@ -68,10 +68,41 @@
         </field>
     </record>
 
+    <record id="view_stocksense_adjustment_search" model="ir.ui.view">
+        <field name="name">stocksense.adjustment.search</field>
+        <field name="model">stocksense.adjustment</field>
+        <field name="arch" type="xml">
+            <search string="Search Inventory Adjustments">
+                <field name="name"/>
+                <field name="warehouse_id"/>
+                <field name="location_id"/>
+                <field name="reason"/>
+                <field name="notes"/>
+                <separator/>
+                <filter string="Draft Audits" name="filter_draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Applied to Physical Stock" name="filter_validated" domain="[('state', '=', 'validated')]"/>
+                <separator/>
+                <filter string="Damaged / Broken" name="filter_damage" domain="[('reason', '=', 'damage')]"/>
+                <filter string="Missing / Shrinkage" name="filter_loss" domain="[('reason', '=', 'loss')]"/>
+                <filter string="Counting Errors" name="filter_count_error" domain="[('reason', '=', 'count_error')]"/>
+                <filter string="Expired" name="filter_expired" domain="[('reason', '=', 'expired')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Discrepancy Reason" name="group_reason" context="{'group_by': 'reason'}"/>
+                    <filter string="Warehouse" name="group_warehouse" context="{'group_by': 'warehouse_id'}"/>
+                    <filter string="Location" name="group_location" context="{'group_by': 'location_id'}"/>
+                    <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="Audit Date" name="group_date" context="{'group_by': 'date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
     <record id="action_stocksense_adjustments" model="ir.actions.act_window">
         <field name="name">Inventory Adjustments</field>
         <field name="res_model">stocksense.adjustment</field>
         <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_stocksense_adjustment_search"/>
+        <field name="context">{'search_default_filter_draft': 1}</field>
     </record>
 
     <menuitem id="menu_stocksense_adjustments_action"

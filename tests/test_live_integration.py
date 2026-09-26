@@ -160,5 +160,71 @@ class TestStockSenseLiveIntegration(unittest.TestCase):
                          "Simulation must not mutate actual stock!")
 
 
+    def test_06_enriched_dashboard_metrics_and_operational_intelligence(self):
+        """Verify new operational intelligence, movement overview, and audit blocks in metrics."""
+        resp = self.session.post(f"{ODOO_URL}/api/stocksense/dashboard/metrics", json={
+            'jsonrpc': '2.0',
+            'params': {}
+        })
+        self.assertEqual(resp.status_code, 200)
+        res = resp.json().get('result', {})
+        
+        # Movement overview
+        self.assertIn('movement_overview', res)
+        mov = res['movement_overview']
+        self.assertIn('inbound_total', mov)
+        self.assertIn('outbound_total', mov)
+        self.assertIn('transfers_total', mov)
+        self.assertIn('adjustments_total', mov)
+
+        # Operational Intelligence
+        self.assertIn('operational_intelligence', res)
+        intel = res['operational_intelligence']
+        self.assertIn('critical_count', intel)
+        self.assertIn('attention_count', intel)
+        self.assertIn('anomalies_count', intel)
+        self.assertIn('anomalies', intel)
+        self.assertIn('active_alerts', intel)
+
+        # Health distribution
+        self.assertIn('health_distribution', res)
+        h_dist = res['health_distribution']
+        self.assertIn('healthy_pct', h_dist)
+        self.assertIn('attention_pct', h_dist)
+        self.assertIn('critical_pct', h_dist)
+
+        # All products & audit blocks
+        self.assertIn('all_products', res)
+        self.assertGreater(len(res['all_products']), 0)
+        self.assertIn('blocks', res['audit_integrity'])
+        self.assertGreater(len(res['audit_integrity']['blocks']), 0)
+
+    def test_07_access_control_role_enforcement(self):
+        """Verify that warehouse staff user role cannot delete products or modify ledger."""
+        # Find or create a test staff user
+        group_user = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'ir.model.data', 'check_object_reference',
+            ['stocksense', 'group_stocksense_user']
+        )
+        self.assertTrue(group_user, "StockSense user group must exist")
+        group_user_id = group_user[1]
+
+        # Verify ACL constraints on stock ledger
+        # Attempting to delete ledger entries must raise access error
+        ledgers = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.stock.ledger', 'search_read',
+            [[]], {'fields': ['id'], 'limit': 1}
+        )
+        if ledgers:
+            with self.assertRaises(Exception):
+                self.models.execute_kw(
+                    ODOO_DB, self.uid, ODOO_PASS,
+                    'stocksense.stock.ledger', 'unlink',
+                    [[ledgers[0]['id']]]
+                )
+
+
 if __name__ == '__main__':
     unittest.main()

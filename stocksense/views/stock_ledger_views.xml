@@ -75,16 +75,25 @@
                 <field name="product_sku"/>
                 <field name="reference_document"/>
                 <field name="warehouse_id"/>
+                <field name="location_src_id"/>
+                <field name="location_dest_id"/>
+                <field name="user_id"/>
                 <separator/>
-                <filter string="Receipts" name="filter_receipt" domain="[('operation_type', '=', 'receipt')]"/>
-                <filter string="Deliveries" name="filter_delivery" domain="[('operation_type', '=', 'delivery')]"/>
-                <filter string="Transfers" name="filter_transfer" domain="[('operation_type', '=', 'transfer')]"/>
-                <filter string="Adjustments" name="filter_adjustment" domain="[('operation_type', '=', 'adjustment')]"/>
+                <filter string="Inbound Receipts (+Δ)" name="filter_receipt" domain="[('operation_type', '=', 'receipt')]"/>
+                <filter string="Outbound Deliveries (-Δ)" name="filter_delivery" domain="[('operation_type', '=', 'delivery')]"/>
+                <filter string="Internal Transfers (Δ=0)" name="filter_transfer" domain="[('operation_type', '=', 'transfer')]"/>
+                <filter string="Stock Adjustments" name="filter_adjustment" domain="[('operation_type', '=', 'adjustment')]"/>
+                <separator/>
+                <filter string="Positive Inflow (+)" name="filter_positive" domain="[('quantity_change', '&gt;', 0)]"/>
+                <filter string="Negative Outflow (-)" name="filter_negative" domain="[('quantity_change', '&lt;', 0)]"/>
                 <group expand="0" string="Group By">
                     <filter string="Product" name="group_product" context="{'group_by': 'product_id'}"/>
                     <filter string="Operation Type" name="group_op_type" context="{'group_by': 'operation_type'}"/>
                     <filter string="Warehouse" name="group_warehouse" context="{'group_by': 'warehouse_id'}"/>
-                    <filter string="Date" name="group_date" context="{'group_by': 'date:day'}"/>
+                    <filter string="Source Location" name="group_src_loc" context="{'group_by': 'location_src_id'}"/>
+                    <filter string="Destination Location" name="group_dest_loc" context="{'group_by': 'location_dest_id'}"/>
+                    <filter string="Authorized User" name="group_user" context="{'group_by': 'user_id'}"/>
+                    <filter string="Movement Date" name="group_date" context="{'group_by': 'date:day'}"/>
                 </group>
             </search>
         </field>

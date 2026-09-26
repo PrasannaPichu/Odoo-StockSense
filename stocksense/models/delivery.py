@@ -127,13 +127,26 @@ class StocksenseDelivery(models.Model):
                 historical_movements_qty=hist_qtys
             )
 
+            RULE_ALERT_MAP = {
+                'RULE_INSUFFICIENT_STOCK': 'delivery_deficit',
+                'RULE_REPEATED_ADJUSTMENTS': 'repeated_adjustments',
+                'RULE_DORMANT_STOCK_SURGE': 'dormant_reactivation',
+                'STAT_OUTBOUND_SURGE_Z3': 'outbound_surge',
+                'STAT_OUTBOUND_SURGE_Z2': 'outbound_surge',
+            }
+
             for anomaly in detected_anomalies:
+                rule_code = anomaly.get('rule_code', '')
+                a_type = RULE_ALERT_MAP.get(rule_code, 'general')
+                det_mech = anomaly.get('anomaly_type', 'deterministic_rule')
                 self.env['stocksense.inventory.alert'].sudo().create({
                     'product_id': line.product_id.id,
                     'warehouse_id': self.warehouse_id.id,
                     'current_quantity': avail_stock,
                     'threshold': line.product_id.min_stock_threshold,
                     'severity': anomaly['severity'],
+                    'alert_type': a_type,
+                    'detection_mechanism': det_mech,
                     'reason': f"[{anomaly['title']}] {anomaly['description']}"
                 })
 
@@ -197,6 +210,8 @@ class StocksenseDelivery(models.Model):
                     'current_quantity': line.product_id.total_stock,
                     'threshold': line.product_id.min_stock_threshold,
                     'severity': sev,
+                    'alert_type': 'low_stock',
+                    'detection_mechanism': 'threshold_breach',
                     'reason': f"Stock depleted to {line.product_id.total_stock:.1f} units after dispatch of {line.quantity_delivered:.1f} units on {self.name} (Minimum Safety: {line.product_id.min_stock_threshold:.1f})."
                 })
                 # Emit Low Stock Alert to alerts topic

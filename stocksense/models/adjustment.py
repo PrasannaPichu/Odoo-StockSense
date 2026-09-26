@@ -125,7 +125,9 @@ class StocksenseAdjustment(models.Model):
                     'warehouse_id': self.warehouse_id.id,
                     'current_quantity': line.product_id.total_stock,
                     'threshold': line.product_id.min_stock_threshold,
-                    'severity': 'high' if total_loss > 10 else 'warning',
+                    'severity': 'critical' if total_loss > 10 else 'warning',
+                    'alert_type': 'repeated_adjustments',
+                    'detection_mechanism': 'deterministic_rule',
                     'reason': f"Multiple inventory adjustments detected for {line.product_id.name} ({len(recent_adjs) + 1} occurrences, total variance: {total_loss:.1f} units). Potential shrinkage or inaccurate receipts."
                 })
 

@@ -87,6 +87,111 @@ class StocksenseDashboardController(http.Controller):
             for wh in warehouses
         ]
 
+        # Movement Overview
+        ledgers = request.env['stocksense.stock.ledger'].search([])
+        inbound_total = sum(l.quantity_change for l in ledgers if l.operation_type == 'receipt')
+        outbound_total = sum(abs(l.quantity_change) for l in ledgers if l.operation_type == 'delivery')
+        completed_transfers = request.env['stocksense.transfer'].search([('state', '=', 'completed')])
+        transfers_total = sum(completed_transfers.mapped('total_qty'))
+        adjustments_total = sum(abs(l.quantity_change) for l in ledgers if l.operation_type == 'adjustment')
+
+        # Anomalies & Operational Intelligence
+        anomaly_alerts = request.env['stocksense.inventory.alert'].search([
+            ('detection_mechanism', 'in', ['deterministic_rule', 'statistical_deviation']),
+            ('state', 'in', ['new', 'acknowledged'])
+        ])
+
+        # Scan for pending delivery deficits
+        pending_deliveries_recs = request.env['stocksense.delivery'].search([('state', 'in', ['draft', 'confirmed'])])
+        delivery_deficits = []
+        for d in pending_deliveries_recs:
+            for line in d.line_ids:
+                if line.product_id.total_stock < line.quantity_requested:
+                    delivery_deficits.append({
+                        'id': f"def_{d.id}_{line.id}",
+                        'rule_code': 'delivery_deficit',
+                        'anomaly_type': 'deterministic_rule',
+                        'severity': 'critical',
+                        'title': f'Deficit Attempt: {line.product_id.name}',
+                        'description': f"Order {d.name} requests {line.quantity_requested:.1f} units, but only {line.product_id.total_stock:.1f} available in physical stock.",
+                        'product_name': line.product_id.name,
+                        'product_sku': line.product_id.sku,
+                        'detected_at': d.date.strftime('%Y-%m-%d %H:%M:%S') if d.date else '',
+                        'metrics': {'requested': line.quantity_requested, 'available': line.product_id.total_stock}
+                    })
+
+        anomalies_list = []
+        for a in anomaly_alerts:
+            anomalies_list.append({
+                'id': a.id,
+                'rule_code': a.alert_type,
+                'anomaly_type': a.detection_mechanism,
+                'severity': a.severity,
+                'title': f"{a.name}: {a.product_id.name}",
+                'description': a.reason,
+                'product_name': a.product_id.name,
+                'product_sku': a.product_sku,
+                'detected_at': a.detected_at.strftime('%Y-%m-%d %H:%M:%S') if a.detected_at else '',
+                'metrics': {'current_quantity': a.current_quantity, 'threshold': a.threshold}
+            })
+        anomalies_list.extend(delivery_deficits)
+
+        # Audit Blocks
+        recent_blocks = request.env['stocksense.audit.trail'].search([], order='sequence_number desc, id desc', limit=15)
+        audit_block_list = [
+            {
+                'id': b.id,
+                'sequence_number': b.sequence_number,
+                'timestamp': b.timestamp.strftime('%Y-%m-%d %H:%M:%S') if b.timestamp else '',
+                'event_type': b.event_type,
+                'record_reference': b.record_reference,
+                'previous_hash': b.previous_hash,
+                'current_hash': b.current_hash,
+                'is_verified': b.is_verified,
+                'payload': b.payload_json
+            }
+            for b in recent_blocks
+        ]
+
+        # All Products for Simulator and Overview
+        all_products_list = [
+            {
+                'id': p.id,
+                'name': p.name,
+                'sku': p.sku,
+                'stock': p.total_stock,
+                'min_threshold': p.min_stock_threshold,
+                'max_threshold': p.max_stock_threshold,
+                'health_status': p.health_status,
+                'health_score': p.health_score,
+                'reasons': p.health_reasons
+            }
+            for p in products
+        ]
+
+        # Open alerts detail
+        open_alerts_list = [
+            {
+                'id': a.id,
+                'name': a.name,
+                'severity': a.severity,
+                'alert_type': a.alert_type,
+                'detection_mechanism': a.detection_mechanism,
+                'product_name': a.product_id.name,
+                'product_sku': a.product_sku,
+                'current_quantity': a.current_quantity,
+                'threshold': a.threshold,
+                'reason': a.reason,
+                'detected_at': a.detected_at.strftime('%Y-%m-%d %H:%M:%S') if a.detected_at else ''
+            }
+            for a in open_alerts
+        ]
+
+        # Calculate health percentages
+        healthy_pct = round((healthy_count / total_products * 100), 1) if total_products else 0
+        attention_pct = round((attention_count / total_products * 100), 1) if total_products else 0
+        critical_pct = round((critical_count / total_products * 100), 1) if total_products else 0
+
         return {
             'kpis': {
                 'total_products': total_products,
@@ -100,14 +205,38 @@ class StocksenseDashboardController(http.Controller):
                 'pending_deliveries': pending_deliveries,
                 'pending_transfers': pending_transfers,
             },
+            'movement_overview': {
+                'inbound_total': round(inbound_total, 1),
+                'outbound_total': round(outbound_total, 1),
+                'transfers_total': round(transfers_total, 1),
+                'adjustments_total': round(adjustments_total, 1)
+            },
+            'operational_intelligence': {
+                'critical_count': critical_count,
+                'attention_count': attention_count,
+                'anomalies_count': len(anomalies_list),
+                'low_stock_count': len([a for a in open_alerts if a.alert_type == 'low_stock']),
+                'anomalies': anomalies_list,
+                'active_alerts': open_alerts_list
+            },
+            'health_distribution': {
+                'healthy_count': healthy_count,
+                'healthy_pct': healthy_pct,
+                'attention_count': attention_count,
+                'attention_pct': attention_pct,
+                'critical_count': critical_count,
+                'critical_pct': critical_pct
+            },
             'audit_integrity': {
                 'valid': audit_res['valid'],
                 'total_blocks': audit_res['total_verified'],
                 'broken_at': audit_res.get('broken_at_sequence'),
-                'error': audit_res.get('error_message')
+                'error': audit_res.get('error_message'),
+                'blocks': audit_block_list
             },
             'recent_movements': movements,
             'critical_products': critical_products,
+            'all_products': all_products_list,
             'warehouse_stats': warehouse_stats
         }
 

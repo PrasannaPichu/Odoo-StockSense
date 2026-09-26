@@ -5,54 +5,137 @@
             <!-- Header -->
             <div class="ss-header">
                 <div>
-                    <h1>StockSense Command Center</h1>
-                    <div class="ss-subtitle">Real-Time Event Streaming &amp; Operational Decision Support</div>
+                    <h1>
+                        <i class="fa fa-cubes text-primary"></i>
+                        StockSense Command Center
+                        <span class="ss-brand-badge">Intelligence v1.0</span>
+                    </h1>
+                    <div class="ss-subtitle">Event-Driven Inventory Intelligence, Real-Time Flow &amp; Operational Decision Support</div>
                 </div>
                 <div class="d-flex align-items-center gap-3">
                     <t t-if="state.metrics.audit_integrity and state.metrics.audit_integrity.valid">
-                        <span class="badge bg-success-subtle text-success border border-success p-2">
-                            <i class="fa fa-shield me-1"></i> SHA-256 Audit Chain 100% Valid (<t t-esc="state.metrics.audit_integrity.total_blocks"/> Blocks)
+                        <span class="ss-badge healthy p-2" title="Continuous SHA-256 Hash Chain Integrity Verified">
+                            <i class="fa fa-shield"></i>
+                            SHA-256 AUDIT CHAIN VALID (<t t-esc="state.metrics.audit_integrity.total_blocks"/> BLOCKS)
                         </span>
                     </t>
                     <t t-else="">
-                        <span class="badge bg-danger-subtle text-danger border border-danger p-2">
-                            <i class="fa fa-exclamation-triangle me-1"></i> Audit Verification Pending
+                        <span class="ss-badge critical p-2" title="Cryptographic verification failed">
+                            <i class="fa fa-exclamation-triangle"></i>
+                            AUDIT INTEGRITY ALERT
                         </span>
                     </t>
-                    <button class="btn btn-outline-light btn-sm" t-on-click="refreshData">
-                        <i class="fa fa-refresh me-1"></i> Refresh Stream
+                    <button class="btn btn-outline-light btn-sm d-flex align-items-center gap-2" t-on-click="refreshData">
+                        <i class="fa fa-refresh" t-att-class="{'fa-spin': state.loading}"></i>
+                        <span>Refresh Stream</span>
                     </button>
                 </div>
             </div>
 
+            <!-- Error Banner if any -->
+            <t t-if="state.errorMessage">
+                <div class="alert alert-danger mb-4 d-flex align-items-center gap-3" role="alert">
+                    <i class="fa fa-exclamation-circle fa-2x"></i>
+                    <div>
+                        <strong>Connection Error:</strong> <t t-esc="state.errorMessage"/>
+                    </div>
+                </div>
+            </t>
+
             <!-- Navigation Tabs -->
             <div class="ss-nav-tabs">
                 <button class="ss-tab-btn" t-att-class="{active: state.activeTab === 'overview'}" t-on-click="() =&gt; this.setTab('overview')">
-                    <i class="fa fa-th-large me-1"></i> Executive Overview
+                    <i class="fa fa-th-large"></i> Executive Overview
+                </button>
+                <button class="ss-tab-btn" t-att-class="{active: state.activeTab === 'intel'}" t-on-click="() =&gt; this.setTab('intel')">
+                    <i class="fa fa-bolt text-warning"></i> Operational Intelligence
+                    <span class="badge bg-danger ms-1" t-if="state.metrics.operational_intelligence and state.metrics.operational_intelligence.anomalies_count &gt; 0">
+                        <t t-esc="state.metrics.operational_intelligence.anomalies_count"/>
+                    </span>
                 </button>
                 <button class="ss-tab-btn" t-att-class="{active: state.activeTab === 'flow'}" t-on-click="() =&gt; this.setTab('flow')">
-                    <i class="fa fa-sitemap me-1"></i> Warehouse Flow Map
+                    <i class="fa fa-sitemap"></i> Warehouse Flow Map
                 </button>
                 <button class="ss-tab-btn" t-att-class="{active: state.activeTab === 'health'}" t-on-click="() =&gt; this.setTab('health')">
-                    <i class="fa fa-heartbeat me-1"></i> Stock Health &amp; Diagnostics
+                    <i class="fa fa-heartbeat text-danger"></i> Stock Health &amp; Diagnostics
                 </button>
                 <button class="ss-tab-btn" t-att-class="{active: state.activeTab === 'timeline'}" t-on-click="() =&gt; this.setTab('timeline')">
-                    <i class="fa fa-history me-1"></i> Live Event Timeline
+                    <i class="fa fa-history"></i> Live Event Timeline
                 </button>
                 <button class="ss-tab-btn" t-att-class="{active: state.activeTab === 'simulator'}" t-on-click="() =&gt; this.setTab('simulator')">
-                    <i class="fa fa-sliders me-1"></i> What-If Simulator
+                    <i class="fa fa-sliders text-info"></i> What-If Simulator
                 </button>
                 <button class="ss-tab-btn" t-att-class="{active: state.activeTab === 'audit'}" t-on-click="() =&gt; this.setTab('audit')">
-                    <i class="fa fa-lock me-1"></i> Audit Chain Inspector
+                    <i class="fa fa-lock text-success"></i> Audit Chain Inspector
                 </button>
             </div>
 
+            <!-- ==================================================================== -->
             <!-- TAB 1: EXECUTIVE OVERVIEW -->
+            <!-- ==================================================================== -->
             <t t-if="state.activeTab === 'overview'">
-                <!-- KPI Cards -->
+                <!-- Operational Intelligence Fast-Bar -->
+                <div class="ss-intelligence-banner">
+                    <div class="ss-intelligence-header">
+                        <div class="ss-intelligence-title">
+                            <i class="fa fa-microchip"></i>
+                            Operational Intelligence &amp; Risk Posture
+                        </div>
+                        <span class="text-muted small">Live Real-Time Heuristics &amp; Deterministic Rules</span>
+                    </div>
+                    <div class="ss-intel-cards-grid">
+                        <div class="ss-intel-card critical" t-on-click="() =&gt; this.openCriticalProducts()" title="View Critical Out-of-Stock SKUs">
+                            <div class="ss-intel-info">
+                                <div class="ss-intel-label">Critical Risks</div>
+                                <div class="ss-intel-val text-danger">
+                                    <t t-esc="state.metrics.operational_intelligence ? state.metrics.operational_intelligence.critical_count : 0"/>
+                                </div>
+                            </div>
+                            <i class="fa fa-exclamation-triangle fa-2x text-danger opacity-75"></i>
+                        </div>
+                        <div class="ss-intel-card attention" t-on-click="() =&gt; this.openAttentionProducts()" title="View SKUs Requiring Attention">
+                            <div class="ss-intel-info">
+                                <div class="ss-intel-label">Attention Needed</div>
+                                <div class="ss-intel-val text-warning">
+                                    <t t-esc="state.metrics.operational_intelligence ? state.metrics.operational_intelligence.attention_count : 0"/>
+                                </div>
+                            </div>
+                            <i class="fa fa-eye fa-2x text-warning opacity-75"></i>
+                        </div>
+                        <div class="ss-intel-card anomalies" t-on-click="() =&gt; this.setTab('intel')" title="View Active Operational Anomalies">
+                            <div class="ss-intel-info">
+                                <div class="ss-intel-label">Active Anomalies</div>
+                                <div class="ss-intel-val text-purple" style="color: #c084fc;">
+                                    <t t-esc="state.metrics.operational_intelligence ? state.metrics.operational_intelligence.anomalies_count : 0"/>
+                                </div>
+                            </div>
+                            <i class="fa fa-bolt fa-2x opacity-75" style="color: #c084fc;"></i>
+                        </div>
+                        <div class="ss-intel-card low-stock" t-on-click="() =&gt; this.openAlertsList()" title="View Low Stock Alerts">
+                            <div class="ss-intel-info">
+                                <div class="ss-intel-label">Low-Stock Alerts</div>
+                                <div class="ss-intel-val text-info">
+                                    <t t-esc="state.metrics.operational_intelligence ? state.metrics.operational_intelligence.low_stock_count : 0"/>
+                                </div>
+                            </div>
+                            <i class="fa fa-bell fa-2x text-info opacity-75"></i>
+                        </div>
+                        <div class="ss-intel-card healthy" t-on-click="() =&gt; this.setTab('health')" title="View Stock Health Diagnostics">
+                            <div class="ss-intel-info">
+                                <div class="ss-intel-label">Healthy Buffer</div>
+                                <div class="ss-intel-val text-success">
+                                    <t t-esc="state.metrics.health_distribution ? state.metrics.health_distribution.healthy_pct : 0"/>%
+                                </div>
+                            </div>
+                            <i class="fa fa-check-circle fa-2x text-success opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6 Primary KPI Cards -->
                 <div class="ss-kpi-grid">
                     <div class="ss-kpi-card">
-                        <div class="ss-kpi-icon blue"><i class="fa fa-cube"></i></div>
+                        <div class="ss-kpi-icon blue"><i class="fa fa-cubes"></i></div>
                         <div class="ss-kpi-info">
                             <div class="ss-kpi-label">Active SKUs</div>
                             <div class="ss-kpi-val"><t t-esc="state.metrics.kpis ? state.metrics.kpis.total_products : 0"/></div>
@@ -61,33 +144,33 @@
                     <div class="ss-kpi-card">
                         <div class="ss-kpi-icon green"><i class="fa fa-database"></i></div>
                         <div class="ss-kpi-info">
-                            <div class="ss-kpi-label">Total Stock Units</div>
+                            <div class="ss-kpi-label">Total Stored Units</div>
                             <div class="ss-kpi-val"><t t-esc="state.metrics.kpis ? state.metrics.kpis.total_stock : 0"/></div>
+                        </div>
+                    </div>
+                    <div class="ss-kpi-card">
+                        <div class="ss-kpi-icon cyan"><i class="fa fa-dollar"></i></div>
+                        <div class="ss-kpi-info">
+                            <div class="ss-kpi-label">Asset Valuation</div>
+                            <div class="ss-kpi-val">$<t t-esc="state.metrics.kpis ? state.metrics.kpis.total_valuation : 0"/></div>
                         </div>
                     </div>
                     <div class="ss-kpi-card">
                         <div class="ss-kpi-icon red"><i class="fa fa-exclamation-circle"></i></div>
                         <div class="ss-kpi-info">
-                            <div class="ss-kpi-label">Critical Stock-Outs</div>
-                            <div class="ss-kpi-val"><t t-esc="state.metrics.kpis ? state.metrics.kpis.critical_count : 0"/></div>
+                            <div class="ss-kpi-label">Critical Out-of-Stock</div>
+                            <div class="ss-kpi-val text-danger"><t t-esc="state.metrics.kpis ? state.metrics.kpis.critical_count : 0"/></div>
                         </div>
                     </div>
-                    <div class="ss-kpi-card">
-                        <div class="ss-kpi-icon yellow"><i class="fa fa-bell"></i></div>
+                    <div class="ss-kpi-card" t-on-click="() =&gt; this.openReceiptsList()" style="cursor: pointer;" title="Click to view pending receipts">
+                        <div class="ss-kpi-icon blue"><i class="fa fa-arrow-circle-down"></i></div>
                         <div class="ss-kpi-info">
-                            <div class="ss-kpi-label">Active Alerts</div>
-                            <div class="ss-kpi-val"><t t-esc="state.metrics.kpis ? state.metrics.kpis.open_alerts_count : 0"/></div>
-                        </div>
-                    </div>
-                    <div class="ss-kpi-card">
-                        <div class="ss-kpi-icon cyan"><i class="fa fa-truck"></i></div>
-                        <div class="ss-kpi-info">
-                            <div class="ss-kpi-label">Pending Inbound POs</div>
+                            <div class="ss-kpi-label">Pending Inbound Receipts</div>
                             <div class="ss-kpi-val"><t t-esc="state.metrics.kpis ? state.metrics.kpis.pending_receipts : 0"/></div>
                         </div>
                     </div>
-                    <div class="ss-kpi-card">
-                        <div class="ss-kpi-icon blue"><i class="fa fa-paper-plane"></i></div>
+                    <div class="ss-kpi-card" t-on-click="() =&gt; this.openDeliveriesList()" style="cursor: pointer;" title="Click to view pending deliveries">
+                        <div class="ss-kpi-icon purple"><i class="fa fa-paper-plane"></i></div>
                         <div class="ss-kpi-info">
                             <div class="ss-kpi-label">Pending Deliveries</div>
                             <div class="ss-kpi-val"><t t-esc="state.metrics.kpis ? state.metrics.kpis.pending_deliveries : 0"/></div>
@@ -97,61 +180,246 @@
 
                 <!-- Main Layout -->
                 <div class="ss-main-grid">
-                    <!-- Left: Warehouse Distribution -->
-                    <div class="ss-panel">
-                        <div class="ss-panel-header">
-                            <h3><i class="fa fa-building me-2"></i>Multi-Warehouse Inventory Distribution</h3>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-dark table-hover mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>Code</th>
-                                        <th>Facility Name</th>
-                                        <th>On-Hand Units</th>
-                                        <th>Active SKUs</th>
-                                        <th>Critical Alerts</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <t t-foreach="state.metrics.warehouse_stats || []" t-as="wh" t-key="wh.id">
+                    <!-- Left: Multi-Warehouse Distribution & Movement Overview -->
+                    <div>
+                        <!-- Warehouse Breakdown -->
+                        <div class="ss-panel">
+                            <div class="ss-panel-header">
+                                <h3><i class="fa fa-building text-primary"></i> Multi-Warehouse Inventory Distribution</h3>
+                                <span class="ss-panel-subtitle">Facility Capacity &amp; Stored Assets</span>
+                            </div>
+                            <div class="ss-table-container">
+                                <table class="ss-table">
+                                    <thead>
                                         <tr>
-                                            <td><span class="badge bg-secondary"><t t-esc="wh.code"/></span></td>
-                                            <td class="fw-bold"><t t-esc="wh.name"/></td>
-                                            <td><t t-esc="wh.total_stock"/></td>
-                                            <td><t t-esc="wh.sku_count"/></td>
-                                            <td>
-                                                <span t-att-class="wh.critical_count &gt; 0 ? 'badge bg-danger' : 'badge bg-success'">
-                                                    <t t-esc="wh.critical_count"/> Risks
-                                                </span>
-                                            </td>
+                                            <th>Facility Code</th>
+                                            <th>Facility Name</th>
+                                            <th>On-Hand Units</th>
+                                            <th>Active SKUs</th>
+                                            <th>Risk Posture</th>
                                         </tr>
-                                    </t>
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        <t t-foreach="state.metrics.warehouse_stats || []" t-as="wh" t-key="wh.id">
+                                            <tr>
+                                                <td><span class="ss-badge neutral"><t t-esc="wh.code"/></span></td>
+                                                <td class="fw-bold"><t t-esc="wh.name"/></td>
+                                                <td><t t-esc="wh.total_stock"/> units</td>
+                                                <td><t t-esc="wh.sku_count"/> SKUs</td>
+                                                <td>
+                                                    <span t-att-class="wh.critical_count &gt; 0 ? 'ss-badge critical' : 'ss-badge healthy'">
+                                                        <t t-if="wh.critical_count &gt; 0">
+                                                            <i class="fa fa-warning"></i> <t t-esc="wh.critical_count"/> Critical
+                                                        </t>
+                                                        <t t-else="">
+                                                            <i class="fa fa-check"></i> Nominal
+                                                        </t>
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        </t>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Movement Overview Summary (Inbound vs Outbound) -->
+                        <div class="ss-panel">
+                            <div class="ss-panel-header">
+                                <h3><i class="fa fa-exchange text-info"></i> Inventory Movement &amp; Velocity Summary</h3>
+                                <span class="ss-panel-subtitle">Cumulative Flow History</span>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-3 col-6">
+                                    <div class="p-3 rounded border border-secondary" style="background: rgba(16, 185, 129, 0.1);">
+                                        <div class="text-secondary small fw-bold text-uppercase">Inbound Received</div>
+                                        <div class="h3 text-success fw-bold mt-1">
+                                            +<t t-esc="state.metrics.movement_overview ? state.metrics.movement_overview.inbound_total : 0"/>
+                                        </div>
+                                        <div class="text-muted small">Supplier Goods Receipts</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="p-3 rounded border border-secondary" style="background: rgba(239, 68, 68, 0.1);">
+                                        <div class="text-secondary small fw-bold text-uppercase">Outbound Dispatched</div>
+                                        <div class="h3 text-danger fw-bold mt-1">
+                                            -<t t-esc="state.metrics.movement_overview ? state.metrics.movement_overview.outbound_total : 0"/>
+                                        </div>
+                                        <div class="text-muted small">Customer Deliveries</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="p-3 rounded border border-secondary" style="background: rgba(14, 165, 233, 0.1);">
+                                        <div class="text-secondary small fw-bold text-uppercase">Internal Relocations</div>
+                                        <div class="h3 text-info fw-bold mt-1">
+                                            <t t-esc="state.metrics.movement_overview ? state.metrics.movement_overview.transfers_total : 0"/>
+                                        </div>
+                                        <div class="text-muted small">Inter-Facility Transfers</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="p-3 rounded border border-secondary" style="background: rgba(245, 158, 11, 0.1);">
+                                        <div class="text-secondary small fw-bold text-uppercase">Variance Adjusted</div>
+                                        <div class="h3 text-warning fw-bold mt-1">
+                                            <t t-esc="state.metrics.movement_overview ? state.metrics.movement_overview.adjustments_total : 0"/>
+                                        </div>
+                                        <div class="text-muted small">Damaged / Missing</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Right: Critical Attention Items -->
-                    <div class="ss-panel">
-                        <div class="ss-panel-header">
-                            <h3><i class="fa fa-warning text-warning me-2"></i>Priority Operational Focus</h3>
-                        </div>
-                        <div class="d-flex flex-column gap-3">
-                            <t t-foreach="state.metrics.critical_products || []" t-as="cp" t-key="cp.id">
-                                <div class="p-3 rounded border border-secondary" style="background: rgba(15,23,42,0.8);">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <div class="fw-bold text-white"><t t-esc="cp.name"/></div>
-                                            <small class="text-muted"><t t-esc="cp.sku"/></small>
+                    <!-- Right Column: Priority Operational Focus -->
+                    <div>
+                        <div class="ss-panel">
+                            <div class="ss-panel-header">
+                                <h3><i class="fa fa-warning text-warning"></i> Priority Operational Focus</h3>
+                                <span class="ss-panel-subtitle">Risk Items</span>
+                            </div>
+                            <div class="d-flex flex-column gap-3">
+                                <t t-if="state.metrics.critical_products &amp;&amp; state.metrics.critical_products.length &gt; 0">
+                                    <t t-foreach="state.metrics.critical_products || []" t-as="cp" t-key="cp.id">
+                                        <div class="ss-diag-card">
+                                            <div class="ss-diag-header">
+                                                <div>
+                                                    <div class="ss-diag-title"><t t-esc="cp.name"/></div>
+                                                    <div class="ss-diag-sku"><t t-esc="cp.sku"/></div>
+                                                </div>
+                                                <span t-att-class="'ss-badge ' + cp.health_status">
+                                                    <t t-esc="cp.health_status.toUpperCase()"/> (<t t-esc="cp.health_score"/>%)
+                                                </span>
+                                            </div>
+                                            <div class="d-flex justify-content-between small text-secondary mb-2">
+                                                <span>Stock: <strong class="text-white"><t t-esc="cp.stock"/></strong> units</span>
+                                                <span>Min Safety: <strong class="text-warning"><t t-esc="cp.min_threshold"/></strong></span>
+                                            </div>
+                                            <div class="progress mb-2" style="height: 6px; background: #0f172a;">
+                                                <div t-att-class="'progress-bar ' + (cp.health_status === 'critical' ? 'bg-danger' : 'bg-warning')"
+                                                     role="progressbar"
+                                                     t-att-style="'width: ' + cp.health_score + '%'"/>
+                                            </div>
+                                            <div class="ss-diag-reasons mt-2">
+                                                <div class="ss-diag-reasons-title"><i class="fa fa-info-circle me-1"></i> Diagnostic Reason:</div>
+                                                <div class="ss-diag-reasons-content"><t t-esc="cp.reasons"/></div>
+                                            </div>
                                         </div>
-                                        <span t-att-class="'ss-badge ' + cp.health_status">
-                                            <t t-esc="cp.health_status.toUpperCase()"/> (<t t-esc="cp.health_score"/>%)
-                                        </span>
+                                    </t>
+                                </t>
+                                <t t-else="">
+                                    <div class="ss-empty-state">
+                                        <div class="ss-empty-icon"><i class="fa fa-check-circle text-success"></i></div>
+                                        <div class="ss-empty-title">All SKUs in Nominal State</div>
+                                        <div class="ss-empty-desc">No products currently meet critical or attention warning conditions.</div>
                                     </div>
-                                    <div class="mt-2 small text-warning">
-                                        Stock: <t t-esc="cp.stock"/> (Safety Min: <t t-esc="cp.min_threshold"/>)
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </t>
+
+            <!-- ==================================================================== -->
+            <!-- TAB 2: OPERATIONAL INTELLIGENCE & ANOMALIES -->
+            <!-- ==================================================================== -->
+            <t t-if="state.activeTab === 'intel'">
+                <div class="ss-panel">
+                    <div class="ss-panel-header">
+                        <div>
+                            <h3><i class="fa fa-bolt text-warning"></i> Operational Intelligence &amp; Anomaly Detection Feed</h3>
+                            <span class="ss-panel-subtitle">Transparent Rule-Based and Statistical Outlier Telemetry</span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <span class="ss-badge deterministic"><i class="fa fa-code"></i> Deterministic Business Rules</span>
+                            <span class="ss-badge statistical"><i class="fa fa-line-chart"></i> Statistical Z-Score Shifts</span>
+                        </div>
+                    </div>
+
+                    <div class="row g-4">
+                        <!-- Left: Active Anomalies -->
+                        <div class="col-lg-7">
+                            <h5 class="text-white mb-3 d-flex align-items-center gap-2">
+                                <i class="fa fa-shield text-primary"></i> Active Detected Anomalies
+                                <span class="badge bg-secondary">
+                                    <t t-esc="state.metrics.operational_intelligence ? state.metrics.operational_intelligence.anomalies.length : 0"/>
+                                </span>
+                            </h5>
+
+                            <t t-if="state.metrics.operational_intelligence &amp;&amp; state.metrics.operational_intelligence.anomalies.length &gt; 0">
+                                <t t-foreach="state.metrics.operational_intelligence.anomalies" t-as="anom" t-key="anom.id">
+                                    <div class="ss-diag-card">
+                                        <div class="ss-diag-header">
+                                            <div>
+                                                <div class="ss-diag-title"><t t-esc="anom.title"/></div>
+                                                <div class="ss-diag-sku">SKU: <t t-esc="anom.product_sku"/> · Ref: <t t-esc="anom.rule_code"/></div>
+                                            </div>
+                                            <div class="d-flex flex-column align-items-end gap-1">
+                                                <span t-att-class="'ss-badge ' + (anom.severity === 'critical' ? 'critical' : 'attention')">
+                                                    <i class="fa fa-exclamation-circle"></i> <t t-esc="anom.severity.toUpperCase()"/>
+                                                </span>
+                                                <span t-att-class="'ss-badge ' + (anom.anomaly_type === 'statistical_deviation' ? 'statistical' : 'deterministic')">
+                                                    <t t-if="anom.anomaly_type === 'statistical_deviation'">Statistical Z-Score</t>
+                                                    <t t-else="">Deterministic Rule</t>
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="ss-diag-reasons mt-2">
+                                            <div class="ss-diag-reasons-title">Anomaly Description &amp; Grounding:</div>
+                                            <div class="ss-diag-reasons-content"><t t-esc="anom.description"/></div>
+                                        </div>
+                                        <div class="mt-2 text-muted small d-flex justify-content-between align-items-center">
+                                            <span>Detected: <t t-esc="anom.detected_at"/></span>
+                                            <span class="text-secondary font-monospace" t-if="anom.metrics">
+                                                Metrics: <t t-esc="JSON.stringify(anom.metrics)"/>
+                                            </span>
+                                        </div>
                                     </div>
+                                </t>
+                            </t>
+                            <t t-else="">
+                                <div class="ss-empty-state">
+                                    <div class="ss-empty-icon"><i class="fa fa-check-shield text-success"></i></div>
+                                    <div class="ss-empty-title">Zero Anomalies Detected</div>
+                                    <div class="ss-empty-desc">All current movements, consumption velocity rates, and inventory adjustments conform to normal operational ranges.</div>
+                                </div>
+                            </t>
+                        </div>
+
+                        <!-- Right: Active Operational Alerts -->
+                        <div class="col-lg-5">
+                            <h5 class="text-white mb-3 d-flex align-items-center gap-2">
+                                <i class="fa fa-bell text-warning"></i> Operational Inventory Alerts
+                                <span class="badge bg-secondary">
+                                    <t t-esc="state.metrics.operational_intelligence ? state.metrics.operational_intelligence.active_alerts.length : 0"/>
+                                </span>
+                            </h5>
+
+                            <t t-if="state.metrics.operational_intelligence &amp;&amp; state.metrics.operational_intelligence.active_alerts.length &gt; 0">
+                                <t t-foreach="state.metrics.operational_intelligence.active_alerts" t-as="alt" t-key="alt.id">
+                                    <div class="ss-diag-card">
+                                        <div class="ss-diag-header">
+                                            <div>
+                                                <div class="ss-diag-title"><t t-esc="alt.name"/>: <t t-esc="alt.product_name"/></div>
+                                                <div class="ss-diag-sku"><t t-esc="alt.product_sku"/></div>
+                                            </div>
+                                            <span t-att-class="'ss-badge ' + (alt.severity === 'critical' ? 'critical' : 'attention')">
+                                                <t t-esc="alt.severity.toUpperCase()"/>
+                                            </span>
+                                        </div>
+                                        <div class="small text-secondary mb-2">
+                                            Stock: <strong class="text-white"><t t-esc="alt.current_quantity"/></strong> units | Threshold: <strong class="text-warning"><t t-esc="alt.threshold"/></strong>
+                                        </div>
+                                        <div class="p-2 rounded bg-dark border border-secondary small text-white">
+                                            <t t-esc="alt.reason"/>
+                                        </div>
+                                    </div>
+                                </t>
+                            </t>
+                            <t t-else="">
+                                <div class="ss-empty-state">
+                                    <div class="ss-empty-icon"><i class="fa fa-bell-slash text-muted"></i></div>
+                                    <div class="ss-empty-title">No Active Alerts</div>
+                                    <div class="ss-empty-desc">No unacknowledged inventory alerts in queue.</div>
                                 </div>
                             </t>
                         </div>
@@ -159,80 +427,175 @@
                 </div>
             </t>
 
-            <!-- TAB 2: WAREHOUSE FLOW MAP (SVG) -->
+            <!-- ==================================================================== -->
+            <!-- TAB 3: WAREHOUSE FLOW MAP -->
+            <!-- ==================================================================== -->
             <t t-if="state.activeTab === 'flow'">
                 <div class="ss-panel">
                     <div class="ss-panel-header">
-                        <h3><i class="fa fa-sitemap text-primary me-2"></i>Real-Time Warehouse Material Flow Topology</h3>
-                        <span class="text-muted small">Live directional movement from Suppliers to Customers</span>
+                        <div>
+                            <h3><i class="fa fa-sitemap text-primary"></i> Real-Time Warehouse Material Flow Topology</h3>
+                            <span class="ss-panel-subtitle">Physical &amp; Virtual Node Directional Movements</span>
+                        </div>
+                        <span class="ss-badge healthy"><i class="fa fa-circle"></i> Live Routing</span>
                     </div>
+
                     <div class="ss-flow-container text-center py-4">
-                        <svg class="ss-flow-svg" viewBox="0 0 900 240">
+                        <svg class="ss-flow-svg" viewBox="0 0 920 250">
                             <!-- Supplier Node -->
-                            <rect x="30" y="80" width="140" height="70" rx="8" fill="#1e293b" stroke="#3b82f6" stroke-width="2"/>
-                            <text x="100" y="112" fill="#93c5fd" font-size="14" font-weight="bold" text-anchor="middle">SUPPLIERS</text>
-                            <text x="100" y="132" fill="#64748b" font-size="11" text-anchor="middle">Inbound Dock</text>
+                            <rect x="20" y="80" width="150" height="75" rx="8" fill="#151e32" stroke="#3b82f6" stroke-width="2.5"/>
+                            <text x="95" y="112" fill="#ffffff" font-size="14" font-weight="bold" text-anchor="middle">SUPPLIERS</text>
+                            <text x="95" y="132" fill="#93c5fd" font-size="11" font-weight="600" text-anchor="middle">Inbound Dock</text>
 
                             <!-- Inbound Arrow -->
-                            <line x1="170" y1="115" x2="260" y2="115" stroke="#3b82f6" stroke-width="2" stroke-dasharray="5,5"/>
-                            <polygon points="260,115 250,110 250,120" fill="#3b82f6"/>
-                            <text x="215" y="105" fill="#60a5fa" font-size="10" text-anchor="middle">Receipts (+Δ)</text>
+                            <line x1="170" y1="117" x2="270" y2="117" stroke="#3b82f6" stroke-width="2.5" stroke-dasharray="5,5"/>
+                            <polygon points="270,117 260,111 260,123" fill="#3b82f6"/>
+                            <rect x="185" y="98" width="70" height="18" rx="4" fill="#0b0f19" stroke="#3b82f6"/>
+                            <text x="220" y="111" fill="#93c5fd" font-size="10" font-weight="bold" text-anchor="middle">Receipt (+Δ)</text>
 
                             <!-- Main Warehouse Node -->
-                            <rect x="270" y="40" width="220" height="150" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="2"/>
-                            <text x="380" y="70" fill="#34d399" font-size="14" font-weight="bold" text-anchor="middle">MAIN DISTRIBUTION (WH-MAIN)</text>
-                            <rect x="290" y="85" width="85" height="40" rx="4" fill="#0f172a" stroke="#334155"/>
-                            <text x="332" y="110" fill="#cbd5e1" font-size="11" text-anchor="middle">Rack A &amp; B</text>
-                            <rect x="385" y="85" width="90" height="40" rx="4" fill="#0f172a" stroke="#334155"/>
-                            <text x="430" y="110" fill="#cbd5e1" font-size="11" text-anchor="middle">Production</text>
-                            <text x="380" y="165" fill="#10b981" font-size="12" text-anchor="middle">Central Buffer Stock</text>
+                            <rect x="280" y="35" width="240" height="160" rx="10" fill="#151e32" stroke="#10b981" stroke-width="2.5"/>
+                            <text x="400" y="65" fill="#ffffff" font-size="14" font-weight="bold" text-anchor="middle">MAIN DC (WH-MAIN)</text>
+                            
+                            <!-- Sub-locations inside Main WH -->
+                            <rect x="295" y="80" width="100" height="45" rx="5" fill="#0b0f19" stroke="#334155"/>
+                            <text x="345" y="102" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">Rack A &amp; B</text>
+                            <text x="345" y="116" fill="#6ee7b7" font-size="10" text-anchor="middle">Central Stock</text>
+
+                            <rect x="405" y="80" width="100" height="45" rx="5" fill="#0b0f19" stroke="#334155"/>
+                            <text x="455" y="102" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">Production</text>
+                            <text x="455" y="116" fill="#6ee7b7" font-size="10" text-anchor="middle">Shop Floor</text>
+
+                            <text x="400" y="165" fill="#34d399" font-size="12" font-weight="bold" text-anchor="middle">
+                                Central Inventory Buffer
+                            </text>
 
                             <!-- Inter-Warehouse Transfer Line -->
-                            <path d="M 490 90 L 560 90 L 560 60 L 610 60" fill="none" stroke="#6366f1" stroke-width="2" stroke-dasharray="4,4"/>
-                            <polygon points="610,60 600,55 600,65" fill="#6366f1"/>
-                            <text x="550" y="45" fill="#818cf8" font-size="10" text-anchor="middle">Transfer (Δ=0)</text>
+                            <path d="M 520 90 L 590 90 L 590 60 L 650 60" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-dasharray="4,4"/>
+                            <polygon points="650,60 640,54 640,66" fill="#6366f1"/>
+                            <rect x="545" y="38" width="90" height="18" rx="4" fill="#0b0f19" stroke="#6366f1"/>
+                            <text x="590" y="51" fill="#c7d2fe" font-size="10" font-weight="bold" text-anchor="middle">Transfer (Δ=0)</text>
 
                             <!-- North Hub Node -->
-                            <rect x="620" y="30" width="160" height="70" rx="8" fill="#1e293b" stroke="#6366f1" stroke-width="2"/>
-                            <text x="700" y="60" fill="#a5b4fc" font-size="13" font-weight="bold" text-anchor="middle">NORTH HUB (WH-NORTH)</text>
-                            <text x="700" y="80" fill="#64748b" font-size="11" text-anchor="middle">Regional Depot (Rack C)</text>
+                            <rect x="660" y="25" width="180" height="75" rx="8" fill="#151e32" stroke="#6366f1" stroke-width="2.5"/>
+                            <text x="750" y="56" fill="#ffffff" font-size="13" font-weight="bold" text-anchor="middle">NORTH HUB (WH-NORTH)</text>
+                            <text x="750" y="76" fill="#c7d2fe" font-size="11" font-weight="600" text-anchor="middle">Regional Depot (Rack C)</text>
 
                             <!-- Outbound Lines to Customer -->
-                            <line x1="490" y1="140" x2="610" y2="170" stroke="#ef4444" stroke-width="2" stroke-dasharray="5,5"/>
-                            <polygon points="610,170 600,165 603,175" fill="#ef4444"/>
-                            <line x1="700" y1="100" x2="700" y2="135" stroke="#ef4444" stroke-width="2" stroke-dasharray="5,5"/>
+                            <line x1="520" y1="145" x2="650" y2="175" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="5,5"/>
+                            <polygon points="650,175 639,170 642,182" fill="#ef4444"/>
+                            <rect x="545" y="145" width="85" height="18" rx="4" fill="#0b0f19" stroke="#ef4444"/>
+                            <text x="587" y="158" fill="#fca5a5" font-size="10" font-weight="bold" text-anchor="middle">Delivery (-Δ)</text>
 
                             <!-- Customer Node -->
-                            <rect x="620" y="140" width="160" height="70" rx="8" fill="#1e293b" stroke="#ef4444" stroke-width="2"/>
-                            <text x="700" y="172" fill="#f87171" font-size="14" font-weight="bold" text-anchor="middle">CUSTOMERS</text>
-                            <text x="700" y="192" fill="#64748b" font-size="11" text-anchor="middle">Outbound Fulfillment (-Δ)</text>
+                            <rect x="660" y="140" width="180" height="75" rx="8" fill="#151e32" stroke="#ef4444" stroke-width="2.5"/>
+                            <text x="750" y="172" fill="#ffffff" font-size="14" font-weight="bold" text-anchor="middle">CUSTOMERS</text>
+                            <text x="750" y="192" fill="#fca5a5" font-size="11" font-weight="600" text-anchor="middle">Dispatched Goods</text>
                         </svg>
+                    </div>
+
+                    <!-- Flow Topology Metrics Table -->
+                    <div class="row g-3 mt-3">
+                        <div class="col-md-3">
+                            <div class="p-3 rounded border border-secondary" style="background: rgba(59, 130, 246, 0.1);">
+                                <div class="text-primary small fw-bold">INBOUND STAGE</div>
+                                <div class="h4 text-white mt-1">Suppliers $\rightarrow$ Dock</div>
+                                <div class="text-secondary small">Increases internal on-hand balance via Goods Receipts.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 rounded border border-secondary" style="background: rgba(16, 185, 129, 0.1);">
+                                <div class="text-success small fw-bold">CENTRAL STORAGE</div>
+                                <div class="h4 text-white mt-1">WH-MAIN Hub</div>
+                                <div class="text-secondary small">Central stock buffer across Rack A, B and Production lines.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 rounded border border-secondary" style="background: rgba(99, 102, 241, 0.1);">
+                                <div class="text-indigo small fw-bold" style="color: #a5b4fc;">REGIONAL DEPOT</div>
+                                <div class="h4 text-white mt-1">WH-NORTH Hub</div>
+                                <div class="text-secondary small">Conserves total company stock invariant ($\Delta = 0$).</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 rounded border border-secondary" style="background: rgba(239, 68, 68, 0.1);">
+                                <div class="text-danger small fw-bold">OUTBOUND STAGE</div>
+                                <div class="h4 text-white mt-1">Customer Dispatch</div>
+                                <div class="text-secondary small">Depletes on-hand stock and verifies safety threshold reserves.</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </t>
 
-            <!-- TAB 3: STOCK HEALTH & DIAGNOSTICS -->
+            <!-- ==================================================================== -->
+            <!-- TAB 4: STOCK HEALTH & DIAGNOSTICS -->
+            <!-- ==================================================================== -->
             <t t-if="state.activeTab === 'health'">
                 <div class="ss-panel">
                     <div class="ss-panel-header">
-                        <h3><i class="fa fa-stethoscope text-success me-2"></i>Explainable Inventory Health Diagnostics</h3>
-                        <span class="text-muted small">Deterministic Factor Contributions</span>
+                        <div>
+                            <h3><i class="fa fa-heartbeat text-danger"></i> Explainable Inventory Health Engine</h3>
+                            <span class="ss-panel-subtitle">Transparent Multi-Factor Health Scoring &amp; Causal Reasoning</span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <span class="ss-badge healthy"><i class="fa fa-check"></i> Healthy (75-100)</span>
+                            <span class="ss-badge attention"><i class="fa fa-eye"></i> Attention (45-74)</span>
+                            <span class="ss-badge critical"><i class="fa fa-warning"></i> Critical (&lt; 45)</span>
+                        </div>
                     </div>
+
+                    <!-- Health Distribution Bar -->
+                    <div class="p-3 rounded mb-4 border border-secondary" style="background: rgba(15, 23, 42, 0.6);">
+                        <div class="d-flex justify-content-between text-secondary small fw-bold mb-2">
+                            <span>Inventory Health Distribution Across All SKUs</span>
+                            <span>
+                                <span class="text-success"><t t-esc="state.metrics.health_distribution ? state.metrics.health_distribution.healthy_count : 0"/> Healthy</span> · 
+                                <span class="text-warning"><t t-esc="state.metrics.health_distribution ? state.metrics.health_distribution.attention_count : 0"/> Attention</span> · 
+                                <span class="text-danger"><t t-esc="state.metrics.health_distribution ? state.metrics.health_distribution.critical_count : 0"/> Critical</span>
+                            </span>
+                        </div>
+                        <div class="progress" style="height: 12px; background: #0b0f19;">
+                            <div class="progress-bar bg-success" role="progressbar" t-att-style="'width: ' + (state.metrics.health_distribution ? state.metrics.health_distribution.healthy_pct : 0) + '%'"/>
+                            <div class="progress-bar bg-warning" role="progressbar" t-att-style="'width: ' + (state.metrics.health_distribution ? state.metrics.health_distribution.attention_pct : 0) + '%'"/>
+                            <div class="progress-bar bg-danger" role="progressbar" t-att-style="'width: ' + (state.metrics.health_distribution ? state.metrics.health_distribution.critical_pct : 0) + '%'"/>
+                        </div>
+                    </div>
+
+                    <!-- Product Diagnostic Cards Grid -->
                     <div class="row g-4">
-                        <t t-foreach="state.metrics.critical_products || []" t-as="item" t-key="item.id">
-                            <div class="col-md-6">
-                                <div class="p-3 rounded border border-secondary" style="background: #0f172a;">
-                                    <div class="d-flex justify-content-between">
-                                        <h5 class="text-white mb-1"><t t-esc="item.name"/></h5>
-                                        <span t-att-class="'ss-badge ' + item.health_status"><t t-esc="item.health_status.toUpperCase()"/></span>
+                        <t t-foreach="state.metrics.all_products || []" t-as="item" t-key="item.id">
+                            <div class="col-lg-6">
+                                <div class="ss-diag-card">
+                                    <div class="ss-diag-header">
+                                        <div>
+                                            <div class="ss-diag-title"><t t-esc="item.name"/></div>
+                                            <div class="ss-diag-sku">SKU: <t t-esc="item.sku"/></div>
+                                        </div>
+                                        <span t-att-class="'ss-badge ' + item.health_status">
+                                            <t t-esc="item.health_status.toUpperCase()"/> (<t t-esc="item.health_score"/>%)
+                                        </span>
                                     </div>
-                                    <div class="text-muted small mb-2">SKU: <t t-esc="item.sku"/> | Current Stock: <t t-esc="item.stock"/> units</div>
-                                    <div class="progress mb-3" style="height: 8px;">
-                                        <div class="progress-bar bg-warning" role="progressbar" t-att-style="'width: ' + item.health_score + '%'"/>
+                                    
+                                    <div class="ss-diag-metrics">
+                                        <div>Current Stock: <strong class="text-white"><t t-esc="item.stock"/></strong> units</div>
+                                        <div>Safety Min: <strong class="text-warning"><t t-esc="item.min_threshold"/></strong></div>
+                                        <div>Capacity Max: <strong class="text-secondary"><t t-esc="item.max_threshold"/></strong></div>
                                     </div>
-                                    <div class="text-white small fw-bold mb-1">Causal Diagnostic Factors:</div>
-                                    <div class="text-muted small" style="white-space: pre-line;">
-                                        <t t-esc="item.reasons"/>
+
+                                    <div class="progress mb-3" style="height: 8px; background: #0b0f19;">
+                                        <div t-att-class="'progress-bar ' + (item.health_status === 'healthy' ? 'bg-success' : (item.health_status === 'attention' ? 'bg-warning' : 'bg-danger'))"
+                                             role="progressbar"
+                                             t-att-style="'width: ' + item.health_score + '%'"/>
+                                    </div>
+
+                                    <div class="ss-diag-reasons">
+                                        <div class="ss-diag-reasons-title">
+                                            <i class="fa fa-question-circle me-1"></i> WHY THIS HEALTH STATUS?
+                                        </div>
+                                        <div class="ss-diag-reasons-content">
+                                            <t t-esc="item.reasons"/>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -241,108 +604,278 @@
                 </div>
             </t>
 
-            <!-- TAB 4: LIVE EVENT TIMELINE -->
+            <!-- ==================================================================== -->
+            <!-- TAB 5: LIVE EVENT TIMELINE -->
+            <!-- ==================================================================== -->
             <t t-if="state.activeTab === 'timeline'">
                 <div class="ss-panel">
                     <div class="ss-panel-header">
-                        <h3><i class="fa fa-history text-info me-2"></i>Operational Inventory Event Feed</h3>
-                        <span class="text-muted small">Chronological ledger transactions</span>
+                        <div>
+                            <h3><i class="fa fa-history text-info"></i> Operational Inventory Event Feed</h3>
+                            <span class="ss-panel-subtitle">Chronological Double-Entry Stock Ledger Movements</span>
+                        </div>
+                        <button class="btn btn-outline-light btn-sm" t-on-click="() =&gt; this.openLedgerHistory()">
+                            <i class="fa fa-external-link me-1"></i> View Full Stock Ledger
+                        </button>
                     </div>
-                    <div class="ss-timeline">
-                        <t t-foreach="state.metrics.recent_movements || []" t-as="evt" t-key="evt.id">
-                            <div class="ss-timeline-item">
-                                <div t-att-class="'ss-timeline-dot ' + evt.op_type"/>
-                                <div class="ss-timeline-content">
-                                    <div class="ss-timeline-meta">
-                                        <span><t t-esc="evt.date"/> · <t t-esc="evt.ref"/></span>
-                                        <span class="text-white fw-bold">By: <t t-esc="evt.user"/></span>
-                                    </div>
-                                    <div class="ss-timeline-title">
-                                        <t t-esc="evt.op_type.toUpperCase()"/> — <t t-esc="evt.product_name"/> (<t t-esc="evt.product_sku"/>)
-                                    </div>
-                                    <div class="small mt-1">
-                                        <span t-att-class="evt.delta &gt; 0 ? 'text-success fw-bold' : 'text-danger fw-bold'">
-                                            <t t-esc="evt.delta &gt; 0 ? '+' : ''"/><t t-esc="evt.delta"/> Units
-                                        </span>
-                                        <span class="text-muted ms-2">→ Resulting Balance: <t t-esc="evt.balance_after"/> units</span>
+
+                    <t t-if="state.metrics.recent_movements &amp;&amp; state.metrics.recent_movements.length &gt; 0">
+                        <div class="ss-timeline">
+                            <t t-foreach="state.metrics.recent_movements" t-as="evt" t-key="evt.id">
+                                <div class="ss-timeline-item">
+                                    <div t-att-class="'ss-timeline-dot ' + evt.op_type"/>
+                                    <div class="ss-timeline-content">
+                                        <div class="ss-timeline-meta">
+                                            <span>
+                                                <i class="fa fa-clock-o me-1"></i> <t t-esc="evt.date"/> · 
+                                                <strong>Ref:</strong> <t t-esc="evt.ref"/>
+                                            </span>
+                                            <span class="text-white">
+                                                <i class="fa fa-user me-1"></i> <t t-esc="evt.user"/>
+                                            </span>
+                                        </div>
+                                        <div class="ss-timeline-title">
+                                            <span t-att-class="'ss-badge ' + (evt.op_type === 'receipt' ? 'healthy' : (evt.op_type === 'delivery' ? 'critical' : (evt.op_type === 'transfer' ? 'deterministic' : 'attention')))">
+                                                <t t-esc="evt.op_type.toUpperCase()"/>
+                                            </span>
+                                            <span class="ms-2"><t t-esc="evt.product_name"/> (<t t-esc="evt.product_sku"/>)</span>
+                                        </div>
+                                        <div class="mt-2 d-flex align-items-center gap-3">
+                                            <span t-att-class="evt.delta &gt; 0 ? 'text-success fw-bold' : 'text-danger fw-bold'">
+                                                <t t-esc="evt.delta &gt; 0 ? '+' : ''"/><t t-esc="evt.delta"/> Units
+                                            </span>
+                                            <span class="text-secondary">
+                                                $\rightarrow$ Resulting Stock Balance: <strong class="text-white"><t t-esc="evt.balance_after"/></strong> units
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </t>
-                    </div>
+                            </t>
+                        </div>
+                    </t>
+                    <t t-else="">
+                        <div class="ss-empty-state">
+                            <div class="ss-empty-icon"><i class="fa fa-history text-muted"></i></div>
+                            <div class="ss-empty-title">No Inventory Transactions Yet</div>
+                            <div class="ss-empty-desc">Validate a goods receipt, transfer, or customer delivery order to generate timeline events.</div>
+                        </div>
+                    </t>
                 </div>
             </t>
 
-            <!-- TAB 5: WHAT-IF SIMULATOR -->
+            <!-- ==================================================================== -->
+            <!-- TAB 6: WHAT-IF SIMULATOR -->
+            <!-- ==================================================================== -->
             <t t-if="state.activeTab === 'simulator'">
                 <div class="ss-panel">
                     <div class="ss-panel-header">
-                        <h3><i class="fa fa-sliders text-warning me-2"></i>In-Memory What-If Scenario Simulator</h3>
-                        <span class="badge bg-info">100% Sandboxed · Zero DB Mutation</span>
+                        <div>
+                            <h3><i class="fa fa-sliders text-info"></i> In-Memory What-If Scenario Simulator</h3>
+                            <span class="ss-panel-subtitle">Simulate Hypothetical Inbound &amp; Outbound Orders Before Committing</span>
+                        </div>
+                        <span class="ss-badge statistical">
+                            <i class="fa fa-shield"></i> 100% Sandboxed · Zero Database Mutation
+                        </span>
                     </div>
 
                     <div class="ss-sim-box">
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label class="text-muted small fw-bold">Select SKU</label>
-                                <select class="form-select bg-dark text-white border-secondary" t-model="state.simProductId">
-                                    <t t-foreach="state.metrics.critical_products || []" t-as="p" t-key="p.id">
-                                        <option t-att-value="p.id"><t t-esc="p.name"/> (<t t-esc="p.sku"/>)</option>
+                                <label class="ss-form-label">Select SKU / Product</label>
+                                <select class="ss-select" t-on-change="onSimProductChange">
+                                    <t t-foreach="state.metrics.all_products || []" t-as="p" t-key="p.id">
+                                        <option t-att-value="p.id" t-att-selected="p.id === state.simProductId">
+                                            <t t-esc="p.name"/> (<t t-esc="p.sku"/>) — Stock: <t t-esc="p.stock"/>
+                                        </option>
                                     </t>
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="text-muted small fw-bold">Hypothetical Scenario</label>
-                                <select class="form-select bg-dark text-white border-secondary" t-model="state.simType">
-                                    <option value="delivery">Customer Order Dispatch (Outflow)</option>
-                                    <option value="receipt">Supplier Receipt (Inflow)</option>
+                                <label class="ss-form-label">Hypothetical Scenario Type</label>
+                                <select class="ss-select" t-on-change="onSimTypeChange">
+                                    <option value="delivery" t-att-selected="state.simType === 'delivery'">Customer Order Dispatch (Outflow)</option>
+                                    <option value="receipt" t-att-selected="state.simType === 'receipt'">Supplier Goods Receipt (Inflow)</option>
+                                    <option value="transfer" t-att-selected="state.simType === 'transfer'">Internal Warehouse Transfer</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="text-muted small fw-bold">Hypothetical Quantity: <span class="text-warning fw-bold"><t t-esc="state.simQty"/></span></label>
-                                <input type="range" class="form-range ss-sim-slider" min="5" max="200" step="5" t-model="state.simQty" t-on-input="runSimulator"/>
+                                <label class="ss-form-label">
+                                    Hypothetical Quantity: 
+                                    <span class="text-warning fw-bold fs-6 ms-1"><t t-esc="state.simQty"/> units</span>
+                                </label>
+                                <input type="range" class="ss-sim-slider" min="5" max="200" step="5"
+                                       t-att-value="state.simQty"
+                                       t-on-input="onSimQtyChange"/>
                             </div>
                         </div>
 
                         <t t-if="state.simResult">
                             <hr class="border-secondary my-4"/>
-                            <div class="row g-3">
+                            
+                            <div class="row g-4">
+                                <!-- Baseline Actual Stock -->
                                 <div class="col-md-6">
-                                    <div class="p-3 rounded border border-secondary" style="background: rgba(15,23,42,0.6);">
-                                        <div class="text-muted small uppercase">Baseline Actual Stock</div>
-                                        <div class="h3 text-white"><t t-esc="state.simResult.current_stock"/> units</div>
-                                        <div class="small text-muted">Safety Min: <t t-esc="state.simResult.health_impact.before.factors.stock_ratio_score"/>% buffer</div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="p-3 rounded border border-secondary" style="background: rgba(15,23,42,0.6);">
-                                        <div class="text-muted small uppercase">Projected Resulting Stock</div>
-                                        <div t-att-class="'h3 ' + (state.simResult.projected_stock &lt; 0 ? 'text-danger' : 'text-success')">
-                                            <t t-esc="state.simResult.projected_stock"/> units
-                                            <span class="small ms-2">(<t t-esc="state.simResult.stock_delta &gt; 0 ? '+' : ''"/><t t-esc="state.simResult.stock_delta"/>)</span>
+                                    <div class="p-3 rounded border border-secondary" style="background: rgba(15, 23, 42, 0.7);">
+                                        <div class="text-secondary small fw-bold text-uppercase">Baseline Physical Stock</div>
+                                        <div class="h2 text-white fw-bold my-1">
+                                            <t t-esc="state.simResult.current_stock"/> units
                                         </div>
-                                        <div class="small text-warning fw-bold"><t t-esc="state.simResult.health_impact.transition"/></div>
+                                        <div class="small text-secondary">
+                                            Actual stock recorded in PostgreSQL database
+                                        </div>
+                                        <div class="mt-2">
+                                            <span t-att-class="'ss-badge ' + state.simResult.health_impact.before.health_status">
+                                                Current: <t t-esc="state.simResult.health_impact.before.health_status.toUpperCase()"/> (<t t-esc="state.simResult.health_impact.before.health_score"/>%)
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
+
+                                <!-- Projected Resulting Stock -->
+                                <div class="col-md-6">
+                                    <div class="p-3 rounded border border-secondary" style="background: rgba(15, 23, 42, 0.7);">
+                                        <div class="text-secondary small fw-bold text-uppercase">Projected Hypothetical Stock</div>
+                                        <div t-att-class="'h2 fw-bold my-1 ' + (state.simResult.projected_stock &lt; 0 ? 'text-danger' : 'text-success')">
+                                            <t t-esc="state.simResult.projected_stock"/> units
+                                            <span class="fs-6 ms-2 text-secondary">
+                                                (<t t-esc="state.simResult.stock_delta &gt; 0 ? '+' : ''"/><t t-esc="state.simResult.stock_delta"/>)
+                                            </span>
+                                        </div>
+                                        <div class="small text-warning fw-bold">
+                                            <i class="fa fa-exchange me-1"></i> <t t-esc="state.simResult.health_impact.transition"/>
+                                        </div>
+                                        <div class="mt-2">
+                                            <span t-att-class="'ss-badge ' + state.simResult.health_impact.after.health_status">
+                                                Projected: <t t-esc="state.simResult.health_impact.after.health_status.toUpperCase()"/> (<t t-esc="state.simResult.health_impact.after.health_score"/>%)
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Warnings & Prescriptive Recommendations -->
+                            <div class="mt-4">
+                                <t t-if="state.simResult.warnings &amp;&amp; state.simResult.warnings.length &gt; 0">
+                                    <div class="alert alert-danger mb-3 border-danger d-flex align-items-center gap-3">
+                                        <i class="fa fa-exclamation-triangle fa-2x"></i>
+                                        <div>
+                                            <div class="fw-bold">Decision Support Warnings:</div>
+                                            <t t-foreach="state.simResult.warnings" t-as="w" t-key="w">
+                                                <div>• <t t-esc="w"/></div>
+                                            </t>
+                                        </div>
+                                    </div>
+                                </t>
+
+                                <t t-if="state.simResult.recommendations &amp;&amp; state.simResult.recommendations.length &gt; 0">
+                                    <div class="alert alert-info border-info d-flex align-items-center gap-3" style="background: rgba(14, 165, 233, 0.15); color: #e0f2fe;">
+                                        <i class="fa fa-lightbulb-o fa-2x text-info"></i>
+                                        <div>
+                                            <div class="fw-bold text-info">Prescriptive Recommendations:</div>
+                                            <t t-foreach="state.simResult.recommendations" t-as="rec" t-key="rec">
+                                                <div>• <t t-esc="rec"/></div>
+                                            </t>
+                                        </div>
+                                    </div>
+                                </t>
                             </div>
                         </t>
                     </div>
                 </div>
             </t>
 
-            <!-- TAB 6: AUDIT CHAIN INSPECTOR -->
+            <!-- ==================================================================== -->
+            <!-- TAB 7: AUDIT CHAIN INSPECTOR -->
+            <!-- ==================================================================== -->
             <t t-if="state.activeTab === 'audit'">
                 <div class="ss-panel">
                     <div class="ss-panel-header">
-                        <h3><i class="fa fa-lock text-success me-2"></i>Tamper-Evident SHA-256 Hash Chain Integrity</h3>
+                        <div>
+                            <h3><i class="fa fa-lock text-success"></i> Tamper-Evident SHA-256 Audit Trail Chain</h3>
+                            <span class="ss-panel-subtitle">Continuous Cryptographic Hash Chain Validation</span>
+                        </div>
+                        <t t-if="state.metrics.audit_integrity and state.metrics.audit_integrity.valid">
+                            <span class="ss-badge healthy p-2">
+                                <i class="fa fa-check-circle"></i> FORENSIC STATUS: 100% VALID
+                            </span>
+                        </t>
+                        <t t-else="">
+                            <span class="ss-badge critical p-2">
+                                <i class="fa fa-exclamation-triangle"></i> TAMPERING DETECTED AT BLOCK #<t t-esc="state.metrics.audit_integrity.broken_at"/>
+                            </span>
+                        </t>
                     </div>
-                    <div class="p-4 rounded border border-success mb-4" style="background: rgba(16,185,129,0.1);">
-                        <h4 class="text-success mb-2"><i class="fa fa-check-circle me-2"></i>Forensic Integrity Confirmed</h4>
-                        <p class="text-muted mb-0">
-                            Every receipt, delivery, transfer, and physical count adjustment is linked via continuous SHA-256 block hashing.
-                            Any direct database tampering or raw SQL quantity manipulation invalidates subsequent block hashes immediately.
-                        </p>
+
+                    <!-- Explanatory Banner -->
+                    <div class="p-3 rounded border border-success mb-4" style="background: rgba(16, 185, 129, 0.08);">
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="fa fa-shield fa-2x text-success"></i>
+                            <div>
+                                <h5 class="text-success mb-1">Cryptographic Ledger Invariance Guaranteed</h5>
+                                <p class="text-secondary small mb-0">
+                                    Every goods receipt, delivery dispatch, inter-warehouse transfer, and physical count adjustment is linked via continuous SHA-256 block hashing.
+                                    Direct database row tampering or out-of-band SQL manipulation breaks the chain signature immediately.
+                                </p>
+                            </div>
+                        </div>
                     </div>
+
+                    <!-- Block by Block Cards -->
+                    <h5 class="text-white mb-3 d-flex align-items-center gap-2">
+                        <i class="fa fa-link text-primary"></i> Cryptographic Block Chain Explorer
+                        <span class="badge bg-secondary"><t t-esc="state.metrics.audit_integrity ? state.metrics.audit_integrity.total_blocks : 0"/> Verified Blocks</span>
+                    </h5>
+
+                    <t t-if="state.metrics.audit_integrity &amp;&amp; state.metrics.audit_integrity.blocks &amp;&amp; state.metrics.audit_integrity.blocks.length &gt; 0">
+                        <div class="d-flex flex-column gap-2">
+                            <t t-foreach="state.metrics.audit_integrity.blocks" t-as="blk" t-key="blk.id">
+                                <div class="ss-audit-block-card">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="badge bg-primary p-2 fs-6">
+                                            #<t t-esc="blk.sequence_number"/>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-white">
+                                                <t t-esc="blk.event_type"/>
+                                                <span class="text-secondary font-monospace ms-2">[<t t-esc="blk.record_reference"/>]</span>
+                                            </div>
+                                            <div class="text-muted small">
+                                                <i class="fa fa-clock-o me-1"></i> <t t-esc="blk.timestamp"/>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex flex-column align-items-end gap-1">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="text-muted small">Prev:</span>
+                                            <span class="ss-hash-tag"><t t-esc="blk.previous_hash.substring(0, 16)"/>...</span>
+                                            <span class="text-muted small">Curr:</span>
+                                            <span class="ss-hash-tag text-success"><t t-esc="blk.current_hash.substring(0, 16)"/>...</span>
+                                            <span class="ss-badge healthy"><i class="fa fa-check"></i> VALID</span>
+                                        </div>
+                                        <button class="btn btn-link btn-sm text-secondary p-0" t-on-click="() =&gt; this.toggleBlockPayload(blk.id)">
+                                            <i class="fa fa-code me-1"></i>
+                                            <t t-if="state.expandedBlockId === blk.id">Hide Payload</t>
+                                            <t t-else="">View Audited State Payload</t>
+                                        </button>
+                                    </div>
+                                </div>
+                                <t t-if="state.expandedBlockId === blk.id">
+                                    <div class="p-3 rounded mb-3 border border-secondary" style="background: #090d16;">
+                                        <div class="text-secondary small fw-bold mb-1">Canonical Audited Payload (Immutable JSON):</div>
+                                        <pre class="text-info font-monospace small mb-0" style="white-space: pre-wrap;"><t t-esc="blk.payload"/></pre>
+                                    </div>
+                                </t>
+                            </t>
+                        </div>
+                    </t>
+                    <t t-else="">
+                        <div class="ss-empty-state">
+                            <div class="ss-empty-icon"><i class="fa fa-chain text-muted"></i></div>
+                            <div class="ss-empty-title">No Audit Blocks Recorded</div>
+                            <div class="ss-empty-desc">Audit blocks are cryptographically generated on validation of receipts, deliveries, transfers, and adjustments.</div>
+                        </div>
+                    </t>
                 </div>
             </t>
         </div>

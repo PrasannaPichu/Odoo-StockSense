@@ -135,15 +135,20 @@
                 <field name="name"/>
                 <field name="sku"/>
                 <field name="category_id"/>
+                <field name="preferred_location_id"/>
                 <separator/>
                 <filter string="Critical Risk" name="filter_critical" domain="[('health_status', '=', 'critical')]"/>
                 <filter string="Attention Needed" name="filter_attention" domain="[('health_status', '=', 'attention')]"/>
                 <filter string="Healthy" name="filter_healthy" domain="[('health_status', '=', 'healthy')]"/>
                 <separator/>
-                <filter string="Low Stock (&lt; Min)" name="filter_low_stock" domain="[('total_stock', '&lt;=', 10.0)]"/>
+                <filter string="Out of Stock (Zero Units)" name="filter_out_of_stock" domain="[('total_stock', '&lt;=', 0)]"/>
+                <filter string="In Stock (Available)" name="filter_in_stock" domain="[('total_stock', '&gt;', 0)]"/>
+                <filter string="Active Products" name="filter_active" domain="[('active', '=', True)]"/>
                 <group expand="0" string="Group By">
-                    <filter string="Category" name="group_category" context="{'group_by': 'category_id'}"/>
+                    <filter string="Product Category" name="group_category" context="{'group_by': 'category_id'}"/>
                     <filter string="Health Status" name="group_health" context="{'group_by': 'health_status'}"/>
+                    <filter string="Preferred Location" name="group_location" context="{'group_by': 'preferred_location_id'}"/>
+                    <filter string="Unit of Measure" name="group_uom" context="{'group_by': 'uom_name'}"/>
                 </group>
             </search>
         </field>

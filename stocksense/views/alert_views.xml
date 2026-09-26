@@ -10,6 +10,8 @@
                 <field name="product_sku"/>
                 <field name="product_id"/>
                 <field name="warehouse_id"/>
+                <field name="alert_type" widget="badge"/>
+                <field name="detection_mechanism" widget="badge"/>
                 <field name="current_quantity"/>
                 <field name="threshold"/>
                 <field name="severity" widget="badge"
@@ -39,12 +41,14 @@
                 <sheet>
                     <div class="oe_title">
                         <h1><field name="name"/></h1>
+                        <h3><field name="alert_type"/></h3>
                     </div>
                     <group>
-                        <group string="Affected SKU">
+                        <group string="Affected SKU &amp; Classification">
                             <field name="product_id"/>
                             <field name="product_sku"/>
                             <field name="warehouse_id"/>
+                            <field name="detection_mechanism"/>
                             <field name="detected_at"/>
                         </group>
                         <group string="Metrics &amp; Severity">
@@ -75,11 +79,24 @@
                 <field name="name"/>
                 <field name="product_id"/>
                 <field name="product_sku"/>
+                <field name="warehouse_id"/>
+                <field name="reason"/>
+                <separator/>
                 <filter string="Active Alerts (New)" name="filter_new" domain="[('state', '=', 'new')]"/>
+                <filter string="Acknowledged" name="filter_acknowledged" domain="[('state', '=', 'acknowledged')]"/>
+                <filter string="Resolved" name="filter_resolved" domain="[('state', '=', 'resolved')]"/>
+                <separator/>
                 <filter string="Critical Severity" name="filter_critical" domain="[('severity', '=', 'critical')]"/>
+                <filter string="Warning Severity" name="filter_warning" domain="[('severity', '=', 'warning')]"/>
+                <separator/>
+                <filter string="Anomalies Only" name="filter_anomalies" domain="[('detection_mechanism', 'in', ['deterministic_rule', 'statistical_deviation'])]"/>
+                <filter string="Low Stock Breaches" name="filter_low_stock" domain="[('alert_type', '=', 'low_stock')]"/>
                 <group expand="0" string="Group By">
+                    <filter string="Category" name="group_alert_type" context="{'group_by': 'alert_type'}"/>
+                    <filter string="Detection Mechanism" name="group_mech" context="{'group_by': 'detection_mechanism'}"/>
                     <filter string="Severity" name="group_severity" context="{'group_by': 'severity'}"/>
                     <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="Warehouse" name="group_warehouse" context="{'group_by': 'warehouse_id'}"/>
                     <filter string="Product" name="group_product" context="{'group_by': 'product_id'}"/>
                 </group>
             </search>
@@ -87,7 +104,7 @@
     </record>
 
     <record id="action_stocksense_alerts" model="ir.actions.act_window">
-        <field name="name">Inventory Alerts</field>
+        <field name="name">Inventory Alerts &amp; Anomalies</field>
         <field name="res_model">stocksense.inventory.alert</field>
         <field name="view_mode">tree,form</field>
         <field name="search_view_id" ref="view_stocksense_alert_search"/>

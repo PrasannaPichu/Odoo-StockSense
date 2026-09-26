@@ -21,6 +21,19 @@ class StocksenseInventoryAlert(models.Model):
         ('warning', 'Warning (Low Stock)'),
         ('critical', 'Critical (Imminent Stock-Out)'),
     ], string='Severity Level', default='warning', required=True, index=True)
+    alert_type = fields.Selection([
+        ('low_stock', 'Low Stock Threshold Breach'),
+        ('delivery_deficit', 'Delivery Deficit Attempt'),
+        ('repeated_adjustments', 'High Adjustment Frequency (Shrinkage Pattern)'),
+        ('dormant_reactivation', 'Dormant SKU Reactivation'),
+        ('outbound_surge', 'Outbound Consumption Surge (Z-Score Deviation)'),
+        ('general', 'Operational Notification'),
+    ], string='Alert Category', default='low_stock', required=True, index=True)
+    detection_mechanism = fields.Selection([
+        ('threshold_breach', 'Safety Threshold Breach'),
+        ('deterministic_rule', 'Deterministic Business Rule'),
+        ('statistical_deviation', 'Statistical Distribution Shift (Z-Score)'),
+    ], string='Detection Mechanism', default='threshold_breach', required=True, index=True)
     reason = fields.Text(string='Causal Diagnosis & Reasoning', required=True)
     state = fields.Selection([
         ('new', 'Active Alert'),
