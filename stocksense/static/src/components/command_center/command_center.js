@@ -51,7 +51,9 @@ export class StocksenseCommandCenter extends Component {
         try {
             this.state.loading = true;
             this.state.errorMessage = null;
-            const data = await this.rpc("/api/stocksense/dashboard/metrics", {});
+            const data = await this.rpc("/api/stocksense/dashboard/metrics", {
+                warehouse: this.state.warehouseFilter || "all",
+            });
             this.state.metrics = data;
             
             // Default simulator selection to first critical product or first product
@@ -101,12 +103,14 @@ export class StocksenseCommandCenter extends Component {
         this.state.productHealthFilter = filter;
     }
 
-    setWarehouseFilter(whCode) {
+    async setWarehouseFilter(whCode) {
         this.state.warehouseFilter = whCode;
+        await this.refreshData();
     }
 
-    onWarehouseFilterChange(ev) {
+    async onWarehouseFilterChange(ev) {
         this.state.warehouseFilter = ev.target.value;
+        await this.refreshData();
     }
 
     onProductSearchInput(ev) {
@@ -240,7 +244,7 @@ export class StocksenseCommandCenter extends Component {
         this.runSimulator();
     }
 
-    // Direct Odoo Action Navigation
+    // Direct Odoo Action Navigation (Guaranteed views array to prevent undefined.map error)
     openProductForm(productId) {
         this.actionService.doAction({
             name: "Product Master",
@@ -256,7 +260,8 @@ export class StocksenseCommandCenter extends Component {
             name: `Stock Ledger: ${productName || 'SKU'}`,
             type: "ir.actions.act_window",
             res_model: "stocksense.stock.ledger",
-            view_mode: "tree,form",
+            views: [[false, "list"], [false, "form"]],
+            view_mode: "list,form",
             domain: [["product_id", "=", productId]],
         });
     }
@@ -266,7 +271,8 @@ export class StocksenseCommandCenter extends Component {
             name: "Critical Risk SKUs",
             type: "ir.actions.act_window",
             res_model: "stocksense.product",
-            view_mode: "tree,form",
+            views: [[false, "list"], [false, "form"]],
+            view_mode: "list,form",
             domain: [["health_status", "=", "critical"]],
         });
     }
@@ -276,7 +282,8 @@ export class StocksenseCommandCenter extends Component {
             name: "Attention Required SKUs",
             type: "ir.actions.act_window",
             res_model: "stocksense.product",
-            view_mode: "tree,form",
+            views: [[false, "list"], [false, "form"]],
+            view_mode: "list,form",
             domain: [["health_status", "=", "attention"]],
         });
     }
@@ -290,7 +297,8 @@ export class StocksenseCommandCenter extends Component {
             name: "Active Inventory Alerts",
             type: "ir.actions.act_window",
             res_model: "stocksense.inventory.alert",
-            view_mode: "tree,form",
+            views: [[false, "list"], [false, "form"]],
+            view_mode: "list,form",
             domain: domain,
         });
     }
@@ -300,7 +308,8 @@ export class StocksenseCommandCenter extends Component {
             name: "Inbound Goods Receipts",
             type: "ir.actions.act_window",
             res_model: "stocksense.receipt",
-            view_mode: "tree,form",
+            views: [[false, "list"], [false, "form"]],
+            view_mode: "list,form",
             domain: [["state", "in", ["draft", "confirmed"]]],
         });
     }
@@ -310,17 +319,114 @@ export class StocksenseCommandCenter extends Component {
             name: "Outbound Deliveries",
             type: "ir.actions.act_window",
             res_model: "stocksense.delivery",
-            view_mode: "tree,form",
-            domain: [["state", "in", ["draft", "confirmed", "assigned"]]],
+            views: [[false, "list"], [false, "form"]],
+            view_mode: "list,form",
+            domain: [["state", "in", ["draft", "confirmed", "assigned", "picked", "packed"]]],
         });
     }
 
     openLedgerHistory() {
+        this.actionService.doAction("stocksense.action_stocksense_ledger");
+    }
+
+    // Direct Operations & Master Data Quick Actions
+    createProduct() {
         this.actionService.doAction({
-            name: "Stock Ledger History",
+            name: "New Product SKU",
             type: "ir.actions.act_window",
-            res_model: "stocksense.stock.ledger",
-            view_mode: "tree,form",
+            res_model: "stocksense.product",
+            views: [[false, "form"]],
+            target: "current",
+        });
+    }
+
+    createReceipt() {
+        this.actionService.doAction({
+            name: "New Goods Receipt",
+            type: "ir.actions.act_window",
+            res_model: "stocksense.receipt",
+            views: [[false, "form"]],
+            target: "current",
+        });
+    }
+
+    createDelivery() {
+        this.actionService.doAction({
+            name: "New Delivery Order",
+            type: "ir.actions.act_window",
+            res_model: "stocksense.delivery",
+            views: [[false, "form"]],
+            target: "current",
+        });
+    }
+
+    createTransfer() {
+        this.actionService.doAction({
+            name: "New Internal Transfer",
+            type: "ir.actions.act_window",
+            res_model: "stocksense.transfer",
+            views: [[false, "form"]],
+            target: "current",
+        });
+    }
+
+    createAdjustment() {
+        this.actionService.doAction({
+            name: "New Inventory Adjustment",
+            type: "ir.actions.act_window",
+            res_model: "stocksense.adjustment",
+            views: [[false, "form"]],
+            target: "current",
+        });
+    }
+
+    createWarehouse() {
+        this.actionService.doAction({
+            name: "Warehouses",
+            type: "ir.actions.act_window",
+            res_model: "stocksense.warehouse",
+            views: [[false, "list"], [false, "form"]],
+            target: "current",
+        });
+    }
+
+    createLocation() {
+        this.actionService.doAction({
+            name: "Locations & Storage Bays",
+            type: "ir.actions.act_window",
+            res_model: "stocksense.location",
+            views: [[false, "list"], [false, "form"]],
+            target: "current",
+        });
+    }
+
+    createPartner() {
+        this.actionService.doAction({
+            name: "Business Partners (Suppliers / Customers)",
+            type: "ir.actions.act_window",
+            res_model: "res.partner",
+            views: [[false, "list"], [false, "form"]],
+            target: "current",
+        });
+    }
+
+    openOcrUpload() {
+        this.actionService.doAction({
+            name: "Document Intake & Local RapidOCR",
+            type: "ir.actions.act_window",
+            res_model: "stocksense.ocr.document",
+            views: [[false, "form"]],
+            target: "current",
+        });
+    }
+
+    openOcrList() {
+        this.actionService.doAction({
+            name: "Document Intake & RapidOCR",
+            type: "ir.actions.act_window",
+            res_model: "stocksense.ocr.document",
+            views: [[false, "list"], [false, "form"]],
+            target: "current",
         });
     }
 }

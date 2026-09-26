@@ -42,6 +42,7 @@ Key Capabilities:
         'views/alert_views.xml',
         'views/audit_views.xml',
         'views/what_if_views.xml',
+        'views/ocr_document_views.xml',
     ],
     'assets': {
         'web.assets_backend': [

@@ -11,3 +11,4 @@ from . import delivery
 from . import transfer
 from . import adjustment
 from . import simulation
+from . import ocr_document

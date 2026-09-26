@@ -225,6 +225,484 @@ class TestStockSenseLiveIntegration(unittest.TestCase):
                     [[ledgers[0]['id']]]
                 )
 
+    def test_08_product_creation_and_inventory_search(self):
+        """Verify dynamic product creation, SKU registration, and health computation."""
+        cat = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.product.category', 'search_read',
+            [[]], {'fields': ['id'], 'limit': 1}
+        )
+        cat_id = cat[0]['id'] if cat else False
+
+        import time
+        unique_sku = f"TITAN-ROD-{int(time.time() * 1000) % 1000000}"
+        prod_id = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.product', 'create',
+            [{
+                'name': 'Titanium Alloy Rod 12mm',
+                'sku': unique_sku,
+                'category_id': cat_id,
+                'uom_name': 'Units',
+                'min_stock_threshold': 10.0,
+                'max_stock_threshold': 100.0,
+                'standard_price': 85.0,
+            }]
+        )
+        self.assertIsInstance(prod_id, int)
+
+        # Product must be searchable
+        found = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.product', 'search_read',
+            [[['sku', '=', unique_sku]]],
+            {'fields': ['id', 'name', 'total_stock', 'health_status']}
+        )
+        self.assertEqual(len(found), 1)
+        self.assertEqual(found[0]['total_stock'], 0.0)
+        self.assertIn(found[0]['health_status'], ['critical', 'attention'])
+
+    def test_09_goods_receipt_lifecycle_and_stock_increase(self):
+        """Verify Receipt workflow: Draft -> Confirmed -> Validated (stock increases, ledger & audit created)."""
+        # Find product, warehouse, location, partner
+        prod = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.product', 'search_read',
+            [[['sku', '=', 'STEEL-ROD-10MM']]],
+            {'fields': ['id', 'total_stock']}
+        )[0]
+        initial_stock = prod['total_stock']
+
+        wh = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.warehouse', 'search_read',
+            [[['code', '=', 'WH-MAIN']]], {'fields': ['id']}
+        )[0]
+        loc = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.location', 'search_read',
+            [[['warehouse_id', '=', wh['id']], ['usage', '=', 'internal']]],
+            {'fields': ['id']}
+        )[0]
+        partner = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'res.partner', 'search_read',
+            [[]], {'fields': ['id'], 'limit': 1}
+        )[0]
+
+        receipt_qty = 25.0
+        # 1. Create Receipt in DRAFT
+        rec_id = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.receipt', 'create',
+            [{
+                'partner_id': partner['id'],
+                'warehouse_id': wh['id'],
+                'location_dest_id': loc['id'],
+                'state': 'draft',
+                'line_ids': [(0, 0, {
+                    'product_id': prod['id'],
+                    'quantity_received': receipt_qty
+                })]
+            }]
+        )
+
+        # Verify stock DID NOT change while in draft
+        prod_check = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.product', 'read',
+            [[prod['id']]], {'fields': ['total_stock']}
+        )[0]
+        self.assertEqual(prod_check['total_stock'], initial_stock, "Draft receipt must NEVER alter stock")
+
+        # 2. Confirm receipt
+        self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.receipt', 'action_confirm',
+            [[rec_id]]
+        )
+
+        # 3. Validate receipt
+        self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.receipt', 'action_validate',
+            [[rec_id]]
+        )
+
+        # Stock must increase exactly by receipt_qty
+        prod_after = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.product', 'read',
+            [[prod['id']]], {'fields': ['total_stock']}
+        )[0]
+        self.assertEqual(prod_after['total_stock'], initial_stock + receipt_qty)
+
+    def test_10_delivery_order_lifecycle_pick_pack_validate(self):
+        """Verify Delivery Order: Draft -> Confirmed -> Pick -> Pack -> Validate."""
+        prod = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.product', 'search_read',
+            [[['sku', '=', 'STEEL-ROD-10MM']]],
+            {'fields': ['id', 'total_stock']}
+        )[0]
+        initial_stock = prod['total_stock']
+
+        wh = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.warehouse', 'search_read',
+            [[['code', '=', 'WH-MAIN']]], {'fields': ['id']}
+        )[0]
+        loc = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.location', 'search_read',
+            [[['warehouse_id', '=', wh['id']], ['usage', '=', 'internal']]],
+            {'fields': ['id']}
+        )[0]
+        partner = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'res.partner', 'search_read',
+            [[]], {'fields': ['id'], 'limit': 1}
+        )[0]
+
+        deliv_qty = 5.0
+        # 1. Create delivery draft
+        deliv_id = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.delivery', 'create',
+            [{
+                'partner_id': partner['id'],
+                'warehouse_id': wh['id'],
+                'location_src_id': loc['id'],
+                'state': 'draft',
+                'line_ids': [(0, 0, {
+                    'product_id': prod['id'],
+                    'quantity_delivered': deliv_qty
+                })]
+            }]
+        )
+
+        # 2. Confirm
+        self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.delivery', 'action_confirm',
+            [[deliv_id]]
+        )
+
+        # 3. Pick
+        self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.delivery', 'action_pick',
+            [[deliv_id]]
+        )
+        deliv_state = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.delivery', 'read',
+            [[deliv_id]], {'fields': ['state']}
+        )[0]['state']
+        self.assertEqual(deliv_state, 'picked')
+
+        # 4. Pack
+        self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.delivery', 'action_pack',
+            [[deliv_id]]
+        )
+        deliv_state = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.delivery', 'read',
+            [[deliv_id]], {'fields': ['state']}
+        )[0]['state']
+        self.assertEqual(deliv_state, 'packed')
+
+        # 5. Validate
+        self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.delivery', 'action_validate',
+            [[deliv_id]]
+        )
+
+        # Stock must decrease by deliv_qty
+        prod_after = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.product', 'read',
+            [[prod['id']]], {'fields': ['total_stock']}
+        )[0]
+        self.assertEqual(prod_after['total_stock'], initial_stock - deliv_qty)
+
+    def test_11_internal_transfer_conservation_invariant(self):
+        """Verify Internal Transfer: Location A dec, Location B inc, Total company stock invariant (Δ = 0)."""
+        prod = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.product', 'search_read',
+            [[['sku', '=', 'STEEL-ROD-10MM']]],
+            {'fields': ['id', 'total_stock']}
+        )[0]
+        initial_total = prod['total_stock']
+
+        locs = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.location', 'search_read',
+            [[['usage', '=', 'internal']]], {'fields': ['id', 'name'], 'limit': 2}
+        )
+        self.assertGreaterEqual(len(locs), 2)
+        loc_src, loc_dest = locs[0], locs[1]
+
+        # Ensure source quant has stock
+        quant_src = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.quant', 'search_read',
+            [[['product_id', '=', prod['id']], ['location_id', '=', loc_src['id']]]],
+            {'fields': ['quantity']}
+        )
+        if not quant_src or quant_src[0]['quantity'] < 10.0:
+            # Add stock to source location via update_stock_quant
+            self.models.execute_kw(
+                ODOO_DB, self.uid, ODOO_PASS,
+                'stocksense.quant', 'update_stock_quant',
+                [prod['id'], loc_src['id'], 20.0]
+            )
+            initial_total += 20.0
+
+        transfer_qty = 5.0
+        # Create transfer
+        trf_id = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.transfer', 'create',
+            [{
+                'location_src_id': loc_src['id'],
+                'location_dest_id': loc_dest['id'],
+                'state': 'draft',
+                'line_ids': [(0, 0, {
+                    'product_id': prod['id'],
+                    'quantity': transfer_qty
+                })]
+            }]
+        )
+
+        # Confirm & Complete
+        self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.transfer', 'action_confirm',
+            [[trf_id]]
+        )
+        self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.transfer', 'action_complete',
+            [[trf_id]]
+        )
+
+        # Verify company-wide stock is invariant (Δ = 0)
+        prod_after = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.product', 'read',
+            [[prod['id']]], {'fields': ['total_stock']}
+        )[0]
+        self.assertEqual(prod_after['total_stock'], initial_total, "Transfer must preserve company total stock")
+
+    def test_12_inventory_adjustment_discrepancy(self):
+        """Verify Inventory Adjustment: difference = counted - recorded, applied accurately."""
+        prod = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.product', 'search_read',
+            [[['sku', '=', 'STEEL-ROD-10MM']]],
+            {'fields': ['id', 'total_stock']}
+        )[0]
+        wh = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.warehouse', 'search_read',
+            [[['code', '=', 'WH-MAIN']]], {'fields': ['id']}
+        )[0]
+        loc = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.location', 'search_read',
+            [[['warehouse_id', '=', wh['id']], ['usage', '=', 'internal']]],
+            {'fields': ['id']}
+        )[0]
+
+        quant = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.quant', 'search_read',
+            [[['product_id', '=', prod['id']], ['location_id', '=', loc['id']]]],
+            {'fields': ['quantity']}
+        )
+        curr_qty = quant[0]['quantity'] if quant else 0.0
+        new_count = curr_qty + 10.0
+
+        adj_id = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.adjustment', 'create',
+            [{
+                'warehouse_id': wh['id'],
+                'location_id': loc['id'],
+                'reason': 'counting_error',
+                'state': 'draft',
+                'line_ids': [(0, 0, {
+                    'product_id': prod['id'],
+                    'recorded_qty': curr_qty,
+                    'counted_qty': new_count
+                })]
+            }]
+        )
+
+        # Validate adjustment
+        self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.adjustment', 'action_validate',
+            [[adj_id]]
+        )
+
+        quant_after = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.quant', 'search_read',
+            [[['product_id', '=', prod['id']], ['location_id', '=', loc['id']]]],
+            {'fields': ['quantity']}
+        )[0]
+        self.assertEqual(quant_after['quantity'], new_count)
+
+    def test_13_rapidocr_document_intake_and_safe_draft_creation(self):
+        """Verify local RapidOCR intake: Upload -> OCR -> Review -> Draft Receipt -> Stock untouched until validation."""
+        import base64
+        b64_path = os.path.join(os.path.dirname(__file__), '..', 'stocksense', 'static', 'sample_invoice.b64')
+        with open(b64_path, 'r') as f:
+            file_b64 = f.read().strip()
+
+        # 1. Ingest document
+        ocr_id = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.ocr.document', 'create',
+            [{
+                'document_type': 'receipt',
+                'filename': 'supplier_invoice_1042.png',
+                'file_data': file_b64,
+            }]
+        )
+        self.assertIsInstance(ocr_id, int)
+
+        # 2. Run RapidOCR
+        self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.ocr.document', 'action_process_ocr',
+            [[ocr_id]]
+        )
+
+        doc = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.ocr.document', 'read',
+            [[ocr_id]],
+            {'fields': ['state', 'confidence', 'extracted_partner_name', 'extracted_reference', 'line_ids']}
+        )[0]
+        self.assertEqual(doc['state'], 'extracted')
+        self.assertGreater(doc['confidence'], 80.0)
+        self.assertIn('1042', doc['extracted_reference'] or '')
+
+        # Check line item extracted
+        self.assertGreater(len(doc['line_ids']), 0)
+        line = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.ocr.line', 'read',
+            [[doc['line_ids'][0]]],
+            {'fields': ['id', 'raw_description', 'detected_sku', 'detected_qty', 'product_id', 'match_status']}
+        )[0]
+        self.assertEqual(line['detected_qty'], 100.0)
+
+        # Human-in-the-loop review: user confirms/selects product if review was required
+        if not line.get('product_id'):
+            prod_target = self.models.execute_kw(
+                ODOO_DB, self.uid, ODOO_PASS,
+                'stocksense.product', 'search_read',
+                [[['sku', '=', 'STEEL-ROD-10MM']]],
+                {'fields': ['id']}
+            )[0]
+            self.models.execute_kw(
+                ODOO_DB, self.uid, ODOO_PASS,
+                'stocksense.ocr.line', 'write',
+                [[line['id']], {'product_id': prod_target['id'], 'match_status': 'manual'}]
+            )
+
+        # Stock before draft creation
+        prod_before = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.product', 'search_read',
+            [[['sku', '=', 'STEEL-ROD-10MM']]],
+            {'fields': ['total_stock']}
+        )[0]['total_stock']
+
+        # 3. Create Draft Receipt from OCR
+        action_res = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.ocr.document', 'action_create_draft_receipt',
+            [[ocr_id]]
+        )
+        self.assertEqual(action_res['res_model'], 'stocksense.receipt')
+        created_receipt_id = action_res['res_id']
+
+        # CRITICAL TEST: OCR MUST NEVER DIRECTLY MUTATE STOCK
+        prod_after_ocr = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.product', 'search_read',
+            [[['sku', '=', 'STEEL-ROD-10MM']]],
+            {'fields': ['total_stock']}
+        )[0]['total_stock']
+        self.assertEqual(prod_before, prod_after_ocr, "OCR draft creation MUST NEVER mutate stock!")
+
+        # 4. Normal workflow validation
+        self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.receipt', 'action_confirm',
+            [[created_receipt_id]]
+        )
+        self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.receipt', 'action_validate',
+            [[created_receipt_id]]
+        )
+
+        # Now stock must increase
+        prod_final = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.product', 'search_read',
+            [[['sku', '=', 'STEEL-ROD-10MM']]],
+            {'fields': ['total_stock']}
+        )[0]['total_stock']
+        self.assertEqual(prod_final, prod_before + 100.0)
+
+    def test_14_ocr_invalid_upload_rejection(self):
+        """Verify invalid document upload rejection (unsupported extension / malicious file)."""
+        import base64
+        fake_exe = base64.b64encode(b"MZ\x90\x00executable").decode('ascii')
+        ocr_id = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.ocr.document', 'create',
+            [{
+                'document_type': 'receipt',
+                'filename': 'malicious_payload.exe',
+                'file_data': fake_exe,
+            }]
+        )
+        with self.assertRaises(Exception):
+            self.models.execute_kw(
+                ODOO_DB, self.uid, ODOO_PASS,
+                'stocksense.ocr.document', 'action_process_ocr',
+                [[ocr_id]]
+            )
+
+    def test_15_dashboard_metrics_warehouse_filtering(self):
+        """Verify that dashboard metrics endpoint dynamically filters when a specific warehouse is provided."""
+        res_all = self.session.post(
+            f"{ODOO_URL}/api/stocksense/dashboard/metrics",
+            json={'jsonrpc': '2.0', 'params': {'warehouse': 'all'}}
+        ).json()['result']
+
+        res_wh = self.session.post(
+            f"{ODOO_URL}/api/stocksense/dashboard/metrics",
+            json={'jsonrpc': '2.0', 'params': {'warehouse': 'WH-MAIN'}}
+        ).json()['result']
+
+        self.assertIn('kpis', res_all)
+        self.assertIn('kpis', res_wh)
+        self.assertGreater(res_all['kpis']['total_products'], 0)
+        self.assertGreater(res_wh['kpis']['total_products'], 0)
+
 
 if __name__ == '__main__':
     unittest.main()

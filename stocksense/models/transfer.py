@@ -73,6 +73,10 @@ class StocksenseTransfer(models.Model):
             trf.write({'state': 'in_transit'})
         return True
 
+    def action_confirm(self):
+        """Confirm internal transfer and initiate transit."""
+        return self.action_start_transit()
+
     def action_complete(self):
         """
         Complete Internal Transfer:

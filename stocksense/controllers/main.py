@@ -13,19 +13,62 @@ class StocksenseDashboardController(http.Controller):
     @http.route('/api/stocksense/dashboard/metrics', type='json', auth='user', methods=['POST', 'GET'])
     def get_dashboard_metrics(self, **kwargs):
         """Returns consolidated live metrics for the Command Center."""
-        products = request.env['stocksense.product'].search([])
-        total_products = len(products)
-        total_stock = sum(products.mapped('total_stock'))
-        total_valuation = sum(products.mapped('stock_valuation'))
+        wh_code = kwargs.get('warehouse')
+        selected_wh = False
+        if wh_code and wh_code != 'all':
+            selected_wh = request.env['stocksense.warehouse'].search([
+                '|', ('code', '=', wh_code), ('name', '=', wh_code)
+            ], limit=1)
 
-        healthy_count = len(products.filtered(lambda p: p.health_status == 'healthy'))
-        attention_count = len(products.filtered(lambda p: p.health_status == 'attention'))
-        critical_count = len(products.filtered(lambda p: p.health_status == 'critical'))
+        if selected_wh:
+            wh_quants = request.env['stocksense.quant'].search([('warehouse_id', '=', selected_wh.id)])
+            prods_with_quant = wh_quants.mapped('product_id')
+            pref_prods = request.env['stocksense.product'].search([
+                ('preferred_location_id.warehouse_id', '=', selected_wh.id)
+            ])
+            products = (prods_with_quant | pref_prods)
+            total_products = len(products)
+            total_stock = sum(wh_quants.mapped('quantity'))
+            total_valuation = sum(q.quantity * q.product_id.standard_price for q in wh_quants)
 
-        open_alerts = request.env['stocksense.inventory.alert'].search([('state', '=', 'new')])
-        pending_receipts = request.env['stocksense.receipt'].search_count([('state', 'in', ['draft', 'confirmed'])])
-        pending_deliveries = request.env['stocksense.delivery'].search_count([('state', 'in', ['draft', 'confirmed', 'assigned'])])
-        pending_transfers = request.env['stocksense.transfer'].search_count([('state', 'in', ['draft', 'in_transit'])])
+            healthy_count = len(products.filtered(lambda p: p.health_status == 'healthy'))
+            attention_count = len(products.filtered(lambda p: p.health_status == 'attention'))
+            critical_count = len(products.filtered(lambda p: p.health_status == 'critical'))
+
+            open_alerts = request.env['stocksense.inventory.alert'].search([
+                ('state', '=', 'new'),
+                ('product_id', 'in', products.ids)
+            ])
+            pending_receipts = request.env['stocksense.receipt'].search_count([
+                ('warehouse_id', '=', selected_wh.id),
+                ('state', 'in', ['draft', 'confirmed'])
+            ])
+            pending_deliveries = request.env['stocksense.delivery'].search_count([
+                ('warehouse_id', '=', selected_wh.id),
+                ('state', 'in', ['draft', 'confirmed', 'assigned', 'picked', 'packed'])
+            ])
+            pending_transfers = request.env['stocksense.transfer'].search_count([
+                ('state', 'in', ['draft', 'in_transit', 'confirmed']),
+                '|', ('warehouse_src_id', '=', selected_wh.id), ('warehouse_dest_id', '=', selected_wh.id)
+            ])
+            recent_ledger = request.env['stocksense.stock.ledger'].search([
+                ('warehouse_id', '=', selected_wh.id)
+            ], order='date desc, id desc', limit=10)
+        else:
+            products = request.env['stocksense.product'].search([])
+            total_products = len(products)
+            total_stock = sum(products.mapped('total_stock'))
+            total_valuation = sum(products.mapped('stock_valuation'))
+
+            healthy_count = len(products.filtered(lambda p: p.health_status == 'healthy'))
+            attention_count = len(products.filtered(lambda p: p.health_status == 'attention'))
+            critical_count = len(products.filtered(lambda p: p.health_status == 'critical'))
+
+            open_alerts = request.env['stocksense.inventory.alert'].search([('state', '=', 'new')])
+            pending_receipts = request.env['stocksense.receipt'].search_count([('state', 'in', ['draft', 'confirmed'])])
+            pending_deliveries = request.env['stocksense.delivery'].search_count([('state', 'in', ['draft', 'confirmed', 'assigned', 'picked', 'packed'])])
+            pending_transfers = request.env['stocksense.transfer'].search_count([('state', 'in', ['draft', 'in_transit', 'confirmed'])])
+            recent_ledger = request.env['stocksense.stock.ledger'].search([], order='date desc, id desc', limit=10)
 
         # Verify audit chain integrity
         all_blocks = request.env['stocksense.audit.trail'].search([], order='sequence_number asc')
@@ -39,9 +82,6 @@ class StocksenseDashboardController(http.Controller):
             for b in all_blocks
         ]
         audit_res = verify_chain(record_list)
-
-        # Recent movements
-        recent_ledger = request.env['stocksense.stock.ledger'].search([], order='date desc, id desc', limit=10)
         movements = [
             {
                 'id': m.id,

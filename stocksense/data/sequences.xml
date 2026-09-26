@@ -63,5 +63,13 @@
             <field name="padding">6</field>
             <field name="company_id" eval="False"/>
         </record>
+        <!-- OCR Document Ingestion Sequence -->
+        <record id="seq_stocksense_ocr" model="ir.sequence">
+            <field name="name">StockSense OCR Document Intake</field>
+            <field name="code">stocksense.ocr.document</field>
+            <field name="prefix">OCR/%(year)s/</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False"/>
+        </record>
     </data>
 </odoo>

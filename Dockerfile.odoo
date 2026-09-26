@@ -6,6 +6,9 @@ RUN pip3 install --no-cache-dir \
     numpy \
     scipy \
     kafka-python-ng \
-    requests
+    requests \
+    opencv-python-headless \
+    rapidocr_onnxruntime \
+    pypdf
 
 USER odoo

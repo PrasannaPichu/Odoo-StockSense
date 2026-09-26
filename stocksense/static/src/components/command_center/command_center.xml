@@ -16,7 +16,7 @@
                     <!-- Warehouse Selector -->
                     <div class="ss-header-control" title="Filter Command Center &amp; Inventory by Warehouse">
                         <i class="fa fa-building text-secondary"></i>
-                        <select class="ss-header-select" t-att-value="state.warehouseFilter" t-on-change="onWarehouseFilterChange">
+                        <select id="ss_facility_select" class="ss-header-select" t-att-value="state.warehouseFilter" t-on-change="onWarehouseFilterChange">
                             <option value="all">All Facilities</option>
                             <t t-foreach="state.metrics.warehouse_stats || []" t-as="wh" t-key="wh.id">
                                 <option t-att-value="wh.code">
@@ -29,7 +29,7 @@
                     <!-- Global Search -->
                     <div class="ss-global-search-wrap" title="Search SKU, Product Name, or Category">
                         <i class="fa fa-search text-secondary"></i>
-                        <input type="text" class="ss-global-search-input" placeholder="Search catalog..."
+                        <input id="ss_global_search_input" type="text" class="ss-global-search-input" placeholder="Search catalog..."
                                t-att-value="state.productSearch"
                                t-on-input="onGlobalSearch"/>
                         <button t-if="state.productSearch" class="ss-search-clear" t-on-click="clearProductSearch" title="Clear">
@@ -38,7 +38,7 @@
                     </div>
 
                     <!-- Active Alerts Indicator Button -->
-                    <button class="btn btn-outline-warning btn-sm d-flex align-items-center gap-1" t-on-click="() =&gt; this.navigateToAlerts()" title="View active operational alerts">
+                    <button id="ss_btn_alerts" class="btn btn-outline-warning btn-sm d-flex align-items-center gap-1" t-on-click="() =&gt; this.navigateToAlerts()" title="View active operational alerts">
                         <i class="fa fa-bell"></i>
                         <span>Alerts</span>
                         <span class="badge bg-danger ms-1" t-if="state.metrics.operational_intelligence and state.metrics.operational_intelligence.active_alerts.length &gt; 0">
@@ -47,7 +47,7 @@
                     </button>
 
                     <!-- Refresh Button -->
-                    <button class="btn btn-outline-light btn-sm d-flex align-items-center gap-2" t-on-click="refreshData" title="Refresh live telemetry">
+                    <button id="ss_btn_refresh" class="btn btn-outline-light btn-sm d-flex align-items-center gap-2" t-on-click="refreshData" title="Refresh live telemetry">
                         <i class="fa fa-refresh" t-att-class="{'fa-spin': state.loading}"></i>
                         <span>Refresh</span>
                     </button>
@@ -102,6 +102,49 @@
             <!-- TAB 1: COMMAND CENTER (BENTO EXECUTIVE OVERVIEW) -->
             <!-- ==================================================================== -->
             <t t-if="state.activeTab === 'overview'">
+                <!-- Level 0: Operational Quick Actions Bar -->
+                <div class="ss-quick-actions-bar mb-4 p-3 rounded" style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div class="d-flex align-items-center flex-wrap gap-2">
+                            <span class="text-white fw-bold small text-uppercase tracking-wider me-1">
+                                <i class="fa fa-bolt text-warning me-1"></i> Operations Hub:
+                            </span>
+                            <button id="ss_btn_new_product" class="btn btn-primary btn-sm d-flex align-items-center gap-1 shadow-sm" t-on-click="() =&gt; this.createProduct()" title="Register a new inventory product/SKU">
+                                <i class="fa fa-plus"></i> <span>New Product</span>
+                            </button>
+                            <button id="ss_btn_new_receipt" class="btn btn-success btn-sm d-flex align-items-center gap-1 shadow-sm" t-on-click="() =&gt; this.createReceipt()" title="Receive goods from supplier">
+                                <i class="fa fa-arrow-down"></i> <span>New Receipt</span>
+                            </button>
+                            <button id="ss_btn_upload_ocr" class="btn btn-info btn-sm d-flex align-items-center gap-1 text-white shadow-sm" t-on-click="() =&gt; this.openOcrUpload()" title="Intake supplier invoice or delivery challan with local RapidOCR">
+                                <i class="fa fa-file-text-o"></i> <span>Upload Doc / OCR</span>
+                            </button>
+                            <button id="ss_btn_new_delivery" class="btn btn-warning btn-sm d-flex align-items-center gap-1 shadow-sm" t-on-click="() =&gt; this.createDelivery()" title="Dispatch goods to customer">
+                                <i class="fa fa-arrow-up"></i> <span>New Delivery</span>
+                            </button>
+                            <button id="ss_btn_new_transfer" class="btn btn-secondary btn-sm d-flex align-items-center gap-1 shadow-sm" t-on-click="() =&gt; this.createTransfer()" title="Transfer stock between warehouses/bays">
+                                <i class="fa fa-exchange"></i> <span>New Transfer</span>
+                            </button>
+                            <button id="ss_btn_new_adjustment" class="btn btn-outline-light btn-sm d-flex align-items-center gap-1 shadow-sm" t-on-click="() =&gt; this.createAdjustment()" title="Cycle count discrepancy adjustment">
+                                <i class="fa fa-sliders"></i> <span>New Adjustment</span>
+                            </button>
+                            <button id="ss_btn_view_ledger" class="btn btn-outline-info btn-sm d-flex align-items-center gap-1 shadow-sm" t-on-click="() =&gt; this.openLedgerHistory()" title="View full double-entry stock ledger">
+                                <i class="fa fa-book"></i> <span>Stock Ledger</span>
+                            </button>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button id="ss_btn_new_warehouse" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" t-on-click="() =&gt; this.createWarehouse()" title="Configure facilities">
+                                <i class="fa fa-building-o"></i> <span>+ Warehouse</span>
+                            </button>
+                            <button id="ss_btn_new_location" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" t-on-click="() =&gt; this.createLocation()" title="Configure storage bays">
+                                <i class="fa fa-map-marker"></i> <span>+ Location</span>
+                            </button>
+                            <button id="ss_btn_new_partner" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" t-on-click="() =&gt; this.createPartner()" title="Manage vendors and customers">
+                                <i class="fa fa-users"></i> <span>+ Partner</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Level 1: Primary Inventory Health Hero & Operational Focus -->
                 <div class="ss-hero-grid mb-4">
                     <!-- Hero 1: Inventory Health (Primary Metric) -->
@@ -427,7 +470,7 @@
 
                             <div class="d-flex justify-content-between align-items-center pt-2 mt-2 border-top border-secondary flex-wrap gap-2" style="font-size: 11px;">
                                 <span class="text-secondary">Double-entry stock ledger: every posting is an immutable debit/credit quant record.</span>
-                                <button class="btn btn-link btn-sm text-info p-0" t-on-click="() =&gt; this.openLedgerHistory()">
+                                <button id="ss_btn_open_native_ledger" class="btn btn-link btn-sm text-info p-0" t-on-click="() =&gt; this.openLedgerHistory()">
                                     <i class="fa fa-external-link me-1"></i> Open Native Ledger
                                 </button>
                             </div>
@@ -580,6 +623,9 @@
                                     <i class="fa fa-times"></i>
                                 </button>
                             </div>
+                            <button class="btn btn-primary btn-sm d-flex align-items-center gap-1 shadow-sm text-nowrap" t-on-click="() =&gt; this.createProduct()" title="Register a new inventory product/SKU">
+                                <i class="fa fa-plus"></i> <span>+ New Product</span>
+                            </button>
                             <span class="text-secondary small fw-bold text-nowrap">
                                 Showing <strong class="text-white"><t t-esc="filteredProducts.length"/></strong> of <t t-esc="state.metrics.all_products ? state.metrics.all_products.length : 0"/> SKUs
                             </span>
@@ -935,7 +981,7 @@
                         <div class="col-md-3">
                             <div class="p-3 rounded border border-secondary" style="background: rgba(59, 130, 246, 0.1);">
                                 <div class="text-primary small fw-bold">INBOUND STAGE</div>
-                                <div class="h4 text-white mt-1">Suppliers $\rightarrow$ Dock</div>
+                                <div class="h4 text-white mt-1">Suppliers → Dock</div>
                                 <div class="text-secondary small">Increases internal on-hand balance via Goods Receipts.</div>
                             </div>
                         </div>
@@ -950,7 +996,7 @@
                             <div class="p-3 rounded border border-secondary" style="background: rgba(99, 102, 241, 0.1);">
                                 <div class="text-indigo small fw-bold" style="color: #a5b4fc;">REGIONAL DEPOT</div>
                                 <div class="h4 text-white mt-1">WH-NORTH Hub</div>
-                                <div class="text-secondary small">Conserves total company stock invariant ($\Delta = 0$).</div>
+                                <div class="text-secondary small">Conserves total company stock invariant (Δ = 0).</div>
                             </div>
                         </div>
                         <div class="col-md-3">
@@ -1050,7 +1096,7 @@
                             <h3><i class="fa fa-history text-info"></i> Operational Inventory Event Feed</h3>
                             <span class="ss-panel-subtitle">Chronological Double-Entry Stock Ledger Movements</span>
                         </div>
-                        <button class="btn btn-outline-light btn-sm" t-on-click="() =&gt; this.openLedgerHistory()">
+                        <button id="ss_btn_view_full_ledger" class="btn btn-outline-light btn-sm" t-on-click="() =&gt; this.openLedgerHistory()">
                             <i class="fa fa-external-link me-1"></i> View Full Stock Ledger
                         </button>
                     </div>
@@ -1081,7 +1127,7 @@
                                                 <t t-esc="evt.delta &gt; 0 ? '+' : ''"/><t t-esc="evt.delta"/> Units
                                             </span>
                                             <span class="text-secondary">
-                                                $\rightarrow$ Resulting Stock Balance: <strong class="text-white"><t t-esc="evt.balance_after"/></strong> units
+                                                → Resulting Stock Balance: <strong class="text-white"><t t-esc="evt.balance_after"/></strong> units
                                             </span>
                                         </div>
                                     </div>

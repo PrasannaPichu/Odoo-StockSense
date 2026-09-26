@@ -23,6 +23,8 @@ class StocksenseDelivery(models.Model):
         ('draft', 'Draft Order'),
         ('confirmed', 'Confirmed'),
         ('assigned', 'Stock Reserved / Picked'),
+        ('picked', 'Picked / Items Gathered'),
+        ('packed', 'Packed / Ready for Dispatch'),
         ('validated', 'Dispatched / Delivered'),
         ('cancelled', 'Cancelled'),
     ], string='Status', default='draft', required=True, index=True)
@@ -30,6 +32,23 @@ class StocksenseDelivery(models.Model):
     line_ids = fields.One2many('stocksense.delivery.line', 'delivery_id', string='Delivery Items')
     total_qty = fields.Float(string='Total Dispatched Qty', compute='_compute_total_qty', store=True)
     notes = fields.Text(string='Shipping & Dispatch Notes')
+    ocr_document_id = fields.Many2one('stocksense.ocr.document', string='Source OCR Document', readonly=True)
+
+    def action_open_ocr_intake(self):
+        """Opens OCR document upload wizard/intake form for this delivery order."""
+        return {
+            'name': _('Upload Customer Order / OCR Intake'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'stocksense.ocr.document',
+            'view_mode': 'form',
+            'views': [[False, 'form']],
+            'context': {
+                'default_document_type': 'delivery',
+                'default_warehouse_id': self.warehouse_id.id if self.warehouse_id else False,
+                'default_partner_id': self.partner_id.id if self.partner_id else False,
+            },
+            'target': 'current',
+        }
 
     @api.depends('line_ids.quantity_delivered')
     def _compute_total_qty(self):
@@ -50,8 +69,8 @@ class StocksenseDelivery(models.Model):
             deliv.write({'state': 'confirmed'})
         return True
 
-    def action_assign(self):
-        """Check availability and mark as assigned."""
+    def action_pick(self):
+        """Pick items: Check physical stock availability at source location and mark as Picked."""
         for deliv in self:
             for line in deliv.line_ids:
                 quant = self.env['stocksense.quant'].search([
@@ -64,7 +83,19 @@ class StocksenseDelivery(models.Model):
                         _("Insufficient stock for %s at %s. Requested: %s, Available: %s")
                         % (line.product_id.name, deliv.location_src_id.complete_name, line.quantity_delivered, available)
                     )
-            deliv.write({'state': 'assigned'})
+            deliv.write({'state': 'picked'})
+        return True
+
+    def action_assign(self):
+        """Backward compatible alias for action_pick."""
+        return self.action_pick()
+
+    def action_pack(self):
+        """Pack order: Package picked items and prepare for final carrier dispatch."""
+        for deliv in self:
+            if deliv.state not in ['picked', 'assigned', 'confirmed']:
+                raise UserError(_('Delivery order must be confirmed and picked before packing.'))
+            deliv.write({'state': 'packed'})
         return True
 
     def action_validate(self):

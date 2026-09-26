@@ -106,4 +106,17 @@
               name="Product Categories"
               parent="menu_stocksense_configuration"
               sequence="30"/>
+
+    <record id="action_stocksense_partners" model="ir.actions.act_window">
+        <field name="name">Business Partners (Suppliers &amp; Customers)</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{}</field>
+    </record>
+
+    <menuitem id="menu_stocksense_partners"
+              name="Business Partners"
+              parent="menu_stocksense_configuration"
+              action="action_stocksense_partners"
+              sequence="40"/>
 </odoo>

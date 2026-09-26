@@ -28,6 +28,23 @@ class StocksenseReceipt(models.Model):
     line_ids = fields.One2many('stocksense.receipt.line', 'receipt_id', string='Receipt Line Items')
     total_qty = fields.Float(string='Total Items Received', compute='_compute_total_qty', store=True)
     notes = fields.Text(string='Receiving Bay Notes')
+    ocr_document_id = fields.Many2one('stocksense.ocr.document', string='Source OCR Intake Document', readonly=True)
+
+    def action_open_ocr_intake(self):
+        """Opens OCR document upload wizard/intake form for this receipt."""
+        return {
+            'name': _('Upload Supplier Document / OCR Intake'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'stocksense.ocr.document',
+            'view_mode': 'form',
+            'views': [[False, 'form']],
+            'context': {
+                'default_document_type': 'receipt',
+                'default_warehouse_id': self.warehouse_id.id if self.warehouse_id else False,
+                'default_partner_id': self.partner_id.id if self.partner_id else False,
+            },
+            'target': 'current',
+        }
 
     @api.depends('line_ids.quantity_received')
     def _compute_total_qty(self):

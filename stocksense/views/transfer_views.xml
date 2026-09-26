@@ -25,7 +25,7 @@
         <field name="arch" type="xml">
             <form string="Internal Transfer">
                 <header>
-                    <button name="action_start_transit" string="Begin Transit / Pick" type="object"
+                    <button name="action_confirm" string="Confirm &amp; Start Transit" type="object"
                             invisible="state != 'draft'" class="oe_highlight"/>
                     <button name="action_complete" string="Complete Transfer &amp; Store" type="object"
                             invisible="state not in ['draft', 'in_transit']" class="btn-success"/>

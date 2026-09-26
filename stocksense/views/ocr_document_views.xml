@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- OCR Document Tree View -->
+    <record id="view_stocksense_ocr_tree" model="ir.ui.view">
+        <field name="name">stocksense.ocr.document.tree</field>
+        <field name="model">stocksense.ocr.document</field>
+        <field name="arch" type="xml">
+            <tree string="OCR Document Intakes"
+                  decoration-info="state == 'draft'"
+                  decoration-warning="state == 'extracted'"
+                  decoration-success="state == 'approved'"
+                  decoration-danger="state in ['rejected', 'failed']">
+                <field name="name"/>
+                <field name="create_date" string="Uploaded On"/>
+                <field name="filename"/>
+                <field name="document_type"/>
+                <field name="extracted_partner_name" string="Detected Partner"/>
+                <field name="extracted_reference" string="Ref #"/>
+                <field name="confidence" widget="progressbar"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state == 'extracted'"
+                       decoration-success="state == 'approved'"
+                       decoration-danger="state in ['rejected', 'failed']"/>
+                <field name="receipt_id" string="Generated Receipt"/>
+                <field name="delivery_id" string="Generated Delivery"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- OCR Document Form View -->
+    <record id="view_stocksense_ocr_form" model="ir.ui.view">
+        <field name="name">stocksense.ocr.document.form</field>
+        <field name="model">stocksense.ocr.document</field>
+        <field name="arch" type="xml">
+            <form string="OCR Document Intake &amp; Verification">
+                <header>
+                    <button name="action_process_ocr"
+                            string="Run RapidOCR"
+                            type="object"
+                            class="oe_highlight"
+                            invisible="state in ['processing', 'approved']"/>
+                    <button name="action_create_draft_receipt"
+                            string="Create Draft Receipt"
+                            type="object"
+                            class="btn-success"
+                            invisible="state != 'extracted' or document_type != 'receipt'"/>
+                    <button name="action_create_draft_delivery"
+                            string="Create Draft Delivery"
+                            type="object"
+                            class="btn-warning"
+                            invisible="state != 'extracted' or document_type != 'delivery'"/>
+                    <button name="action_create_partner"
+                            string="Register Partner"
+                            type="object"
+                            class="btn-info"
+                            invisible="state != 'extracted' or document_type != 'partner'"/>
+                    <button name="action_reject"
+                            string="Reject Document"
+                            type="object"
+                            class="btn-outline-danger"
+                            invisible="state not in ['draft', 'extracted']"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,extracted,approved"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only"/>
+                        <h1><field name="name"/></h1>
+                    </div>
+
+                    <div class="alert alert-info" role="alert" invisible="state != 'extracted'">
+                        <i class="fa fa-info-circle me-1" title="Information"></i>
+                        <strong>Human-in-the-Loop Review:</strong>
+                        Verify detected fields and matched products below. Stock will <em>never</em> be mutated until a draft transaction is approved and separately validated.
+                    </div>
+
+                    <group>
+                        <group string="Document Payload">
+                            <field name="document_type"/>
+                            <field name="file_data" filename="filename"/>
+                            <field name="filename"/>
+                            <field name="file_size" widget="integer"/>
+                            <field name="warehouse_id" options="{'no_create': True}"/>
+                            <field name="partner_id"/>
+                        </group>
+                        <group string="OCR Engine Telemetry">
+                            <field name="ocr_engine"/>
+                            <field name="confidence" widget="progressbar"/>
+                            <field name="receipt_id" invisible="not receipt_id"/>
+                            <field name="delivery_id" invisible="not delivery_id"/>
+                            <field name="reviewed_by" invisible="not reviewed_by"/>
+                            <field name="reviewed_at" invisible="not reviewed_at"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Extracted Entity Details" name="extracted_entities">
+                            <group>
+                                <group string="Party &amp; Identifier">
+                                    <field name="extracted_partner_name"/>
+                                    <field name="extracted_reference"/>
+                                    <field name="extracted_date"/>
+                                    <field name="extracted_tax_id"/>
+                                </group>
+                                <group string="Contact &amp; Location">
+                                    <field name="extracted_phone"/>
+                                    <field name="extracted_email"/>
+                                    <field name="extracted_address"/>
+                                </group>
+                            </group>
+
+                            <separator string="Detected Line Items &amp; Product Matching" invisible="document_type == 'partner'"/>
+                            <field name="line_ids" invisible="document_type == 'partner'">
+                                <tree editable="bottom" decoration-warning="match_status == 'review_required'" decoration-success="match_status in ['matched', 'manual']">
+                                    <field name="raw_description"/>
+                                    <field name="detected_sku"/>
+                                    <field name="detected_qty"/>
+                                    <field name="detected_uom"/>
+                                    <field name="product_id" options="{'no_create': True}" placeholder="Select matching StockSense product..."/>
+                                    <field name="match_status" widget="badge"
+                                           decoration-warning="match_status == 'review_required'"
+                                           decoration-success="match_status in ['matched', 'manual']"/>
+                                    <field name="confidence" optional="show"/>
+                                </tree>
+                            </field>
+                        </page>
+
+                        <page string="Raw OCR Output" name="raw_output">
+                            <field name="raw_text" placeholder="Raw text output from RapidOCR inference..."/>
+                        </page>
+
+                        <page string="Review Notes &amp; Audit Log" name="review_notes">
+                            <field name="review_notes" placeholder="Enter auditor or review remarks..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- OCR Document Search View -->
+    <record id="view_stocksense_ocr_search" model="ir.ui.view">
+        <field name="name">stocksense.ocr.document.search</field>
+        <field name="model">stocksense.ocr.document</field>
+        <field name="arch" type="xml">
+            <search string="Search OCR Ingestion">
+                <field name="name"/>
+                <field name="filename"/>
+                <field name="extracted_partner_name"/>
+                <field name="extracted_reference"/>
+                <field name="partner_id"/>
+                <separator/>
+                <filter string="Requires Review" name="filter_extracted" domain="[('state', '=', 'extracted')]"/>
+                <filter string="Draft / Uploaded" name="filter_draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Approved" name="filter_approved" domain="[('state', '=', 'approved')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Document Type" name="group_type" context="{'group_by': 'document_type'}"/>
+                    <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="Target Warehouse" name="group_wh" context="{'group_by': 'warehouse_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- OCR Action -->
+    <record id="action_stocksense_ocr" model="ir.actions.act_window">
+        <field name="name">Document Intake &amp; OCR</field>
+        <field name="res_model">stocksense.ocr.document</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_stocksense_ocr_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Upload supplier invoices, delivery challans, or partner documents for automated RapidOCR intake!
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu Item for OCR -->
+    <menuitem id="menu_stocksense_ocr"
+              name="Document Intake &amp; OCR"
+              parent="menu_stocksense_operations"
+              action="action_stocksense_ocr"
+              sequence="5"/>
+</odoo>

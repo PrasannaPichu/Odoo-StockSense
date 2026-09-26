@@ -26,6 +26,8 @@
         <field name="arch" type="xml">
             <form string="Goods Receipt">
                 <header>
+                    <button name="action_open_ocr_intake" string="Upload Document / OCR" type="object"
+                            invisible="state == 'validated'" class="btn-info text-white"/>
                     <button name="action_confirm" string="Confirm Order" type="object"
                             invisible="state != 'draft'" class="oe_highlight"/>
                     <button name="action_validate" string="Validate &amp; Increase Stock" type="object"

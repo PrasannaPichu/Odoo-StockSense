@@ -35,3 +35,7 @@ access_stocksense_audit_trail_user,stocksense.audit.trail.user,model_stocksense_
 access_stocksense_audit_trail_manager,stocksense.audit.trail.manager,model_stocksense_audit_trail,group_stocksense_manager,1,0,1,0
 access_stocksense_simulation_user,stocksense.simulation.scenario.user,model_stocksense_simulation_scenario,group_stocksense_user,1,1,1,1
 access_stocksense_simulation_manager,stocksense.simulation.scenario.manager,model_stocksense_simulation_scenario,group_stocksense_manager,1,1,1,1
+access_stocksense_ocr_doc_user,stocksense.ocr.document.user,model_stocksense_ocr_document,group_stocksense_user,1,1,1,0
+access_stocksense_ocr_doc_manager,stocksense.ocr.document.manager,model_stocksense_ocr_document,group_stocksense_manager,1,1,1,1
+access_stocksense_ocr_line_user,stocksense.ocr.line.user,model_stocksense_ocr_line,group_stocksense_user,1,1,1,1
+access_stocksense_ocr_line_manager,stocksense.ocr.line.manager,model_stocksense_ocr_line,group_stocksense_manager,1,1,1,1
