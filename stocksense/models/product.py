@@ -67,8 +67,8 @@ class StocksenseProduct(models.Model):
         ('critical', 'Critical Risk'),
     ], string='Health Status', compute='_compute_inventory_health', store=True, default='healthy', index=True)
     health_score = fields.Float(string='Health Index (0-100)', compute='_compute_inventory_health', store=True)
-    health_reasons = fields.Text(string='Health Explanations', compute='_compute_inventory_health')
-    days_of_inventory = fields.Float(string='Days of Inventory Remaining', compute='_compute_inventory_health')
+    health_reasons = fields.Text(string='Health Explanations', compute='_compute_inventory_health', store=True)
+    days_of_inventory = fields.Float(string='Days of Inventory Remaining', compute='_compute_inventory_health', store=True)
 
     _sql_constraints = [
         ('sku_unique', 'unique(sku)', 'Product SKU must be unique across the organization.')

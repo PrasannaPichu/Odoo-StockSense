@@ -28,7 +28,7 @@ class StocksenseAdjustment(models.Model):
         ('draft', 'Draft Audit'),
         ('validated', 'Applied to Physical Stock'),
         ('cancelled', 'Cancelled'),
-    ], string='Status', default='draft', required=True, index=True, tracking=True)
+    ], string='Status', default='draft', required=True, index=True)
 
     line_ids = fields.One2many('stocksense.adjustment.line', 'adjustment_id', string='Count Discrepancies')
     notes = fields.Text(string='Auditor Comments')
@@ -79,7 +79,7 @@ class StocksenseAdjustment(models.Model):
             src_loc = self.location_id if delta < 0 else loss_loc
             dst_loc = loss_loc if delta < 0 else self.location_id
 
-            self.env['stocksense.stock.ledger'].create({
+            self.env['stocksense.stock.ledger'].sudo().create({
                 'product_id': line.product_id.id,
                 'warehouse_id': self.warehouse_id.id,
                 'location_src_id': src_loc.id,
@@ -107,7 +107,7 @@ class StocksenseAdjustment(models.Model):
                 'discrepancy_delta': delta,
                 'user': self.env.user.name
             }
-            self.env['stocksense.audit.trail'].append_audit_block(
+            self.env['stocksense.audit.trail'].sudo().append_audit_block(
                 event_type='STOCK_ADJUSTED',
                 record_reference=self.name,
                 payload=audit_payload
@@ -120,7 +120,7 @@ class StocksenseAdjustment(models.Model):
             ], limit=5)
             if len(recent_adjs) >= 2:
                 total_loss = sum(abs(a.discrepancy_qty) for a in recent_adjs) + abs(delta)
-                self.env['stocksense.inventory.alert'].create({
+                self.env['stocksense.inventory.alert'].sudo().create({
                     'product_id': line.product_id.id,
                     'warehouse_id': self.warehouse_id.id,
                     'current_quantity': line.product_id.total_stock,
@@ -130,7 +130,7 @@ class StocksenseAdjustment(models.Model):
                 })
 
             # 5. Kafka Event Stream
-            self.env['stocksense.event.outbox'].queue_or_publish_event(
+            self.env['stocksense.event.outbox'].sudo().queue_or_publish_event(
                 topic=TOPIC_EVENTS,
                 event_type='STOCK_ADJUSTED',
                 payload=audit_payload,
@@ -148,6 +148,7 @@ class StocksenseAdjustment(models.Model):
             if adj.state == 'validated':
                 raise UserError(_('Cannot cancel a validated physical inventory adjustment.'))
             adj.write({'state': 'cancelled'})
+        return True
 
 
 class StocksenseAdjustmentLine(models.Model):

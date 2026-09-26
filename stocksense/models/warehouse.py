@@ -58,7 +58,7 @@ class StocksenseLocation(models.Model):
     child_ids = fields.One2many(
         'stocksense.location', 'parent_id', string='Sub-Locations'
     )
-    parent_path = fields.Char(index=True)
+    parent_path = fields.Char(index=True, unaccent=False)
     warehouse_id = fields.Many2one(
         'stocksense.warehouse', string='Warehouse', index=True, ondelete='restrict'
     )

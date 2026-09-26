@@ -20,7 +20,7 @@
                        decoration-success="quantity_change &gt; 0"
                        decoration-danger="quantity_change &lt; 0"/>
                 <field name="balance_before"/>
-                <field name="balance_after" font-weight="bold"/>
+                <field name="balance_after"/>
                 <field name="user_id"/>
             </tree>
         </field>

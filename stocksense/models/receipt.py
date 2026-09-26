@@ -23,7 +23,7 @@ class StocksenseReceipt(models.Model):
         ('confirmed', 'Confirmed / Awaiting Goods'),
         ('validated', 'Received & Stored'),
         ('cancelled', 'Cancelled'),
-    ], string='Status', default='draft', required=True, index=True, tracking=True)
+    ], string='Status', default='draft', required=True, index=True)
 
     line_ids = fields.One2many('stocksense.receipt.line', 'receipt_id', string='Receipt Line Items')
     total_qty = fields.Float(string='Total Items Received', compute='_compute_total_qty', store=True)
@@ -46,6 +46,7 @@ class StocksenseReceipt(models.Model):
             if not rec.line_ids:
                 raise UserError(_('Please add at least one product line item before confirming.'))
             rec.write({'state': 'confirmed'})
+        return True
 
     def action_validate(self):
         """
@@ -84,7 +85,7 @@ class StocksenseReceipt(models.Model):
             )
 
             # 2. Immutable Ledger Entry
-            self.env['stocksense.stock.ledger'].create({
+            self.env['stocksense.stock.ledger'].sudo().create({
                 'product_id': line.product_id.id,
                 'warehouse_id': self.warehouse_id.id,
                 'location_src_id': supplier_loc.id,
@@ -112,14 +113,14 @@ class StocksenseReceipt(models.Model):
                 'balance_after': new_bal,
                 'user': self.env.user.name
             }
-            self.env['stocksense.audit.trail'].append_audit_block(
+            self.env['stocksense.audit.trail'].sudo().append_audit_block(
                 event_type='RECEIPT_VALIDATED',
                 record_reference=self.name,
                 payload=audit_payload
             )
 
             # 4. Kafka Event Stream
-            self.env['stocksense.event.outbox'].queue_or_publish_event(
+            self.env['stocksense.event.outbox'].sudo().queue_or_publish_event(
                 topic=TOPIC_EVENTS,
                 event_type='RECEIPT_VALIDATED',
                 payload=audit_payload,
@@ -143,6 +144,7 @@ class StocksenseReceipt(models.Model):
             if rec.state == 'validated':
                 raise UserError(_('Cannot cancel a validated receipt. Create an adjustment or return instead.'))
             rec.write({'state': 'cancelled'})
+        return True
 
 
 class StocksenseReceiptLine(models.Model):

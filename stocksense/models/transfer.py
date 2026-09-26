@@ -31,7 +31,7 @@ class StocksenseTransfer(models.Model):
         ('in_transit', 'In Transit'),
         ('completed', 'Completed & Transferred'),
         ('cancelled', 'Cancelled'),
-    ], string='Status', default='draft', required=True, index=True, tracking=True)
+    ], string='Status', default='draft', required=True, index=True)
 
     line_ids = fields.One2many('stocksense.transfer.line', 'transfer_id', string='Transfer Items')
     total_qty = fields.Float(string='Total Units Relocated', compute='_compute_total_qty', store=True)
@@ -71,6 +71,7 @@ class StocksenseTransfer(models.Model):
                         % (trf.location_src_id.complete_name, line.quantity, line.product_id.name, avail)
                     )
             trf.write({'state': 'in_transit'})
+        return True
 
     def action_complete(self):
         """
@@ -108,7 +109,7 @@ class StocksenseTransfer(models.Model):
 
             # 3. Create Immutable Ledger Entries
             # Outbound leg
-            self.env['stocksense.stock.ledger'].create({
+            self.env['stocksense.stock.ledger'].sudo().create({
                 'product_id': line.product_id.id,
                 'warehouse_id': self.warehouse_src_id.id if self.warehouse_src_id else False,
                 'location_src_id': self.location_src_id.id,
@@ -122,7 +123,7 @@ class StocksenseTransfer(models.Model):
                 'notes': f"Transfer Outbound -> {self.location_dest_id.complete_name}"
             })
             # Inbound leg
-            self.env['stocksense.stock.ledger'].create({
+            self.env['stocksense.stock.ledger'].sudo().create({
                 'product_id': line.product_id.id,
                 'warehouse_id': self.warehouse_dest_id.id if self.warehouse_dest_id else False,
                 'location_src_id': self.location_src_id.id,
@@ -149,14 +150,14 @@ class StocksenseTransfer(models.Model):
                 'quantity': line.quantity,
                 'user': self.env.user.name
             }
-            self.env['stocksense.audit.trail'].append_audit_block(
+            self.env['stocksense.audit.trail'].sudo().append_audit_block(
                 event_type='TRANSFER_COMPLETED',
                 record_reference=self.name,
                 payload=audit_payload
             )
 
             # 5. Kafka Event Stream
-            self.env['stocksense.event.outbox'].queue_or_publish_event(
+            self.env['stocksense.event.outbox'].sudo().queue_or_publish_event(
                 topic=TOPIC_EVENTS,
                 event_type='TRANSFER_COMPLETED',
                 payload=audit_payload,
@@ -171,6 +172,7 @@ class StocksenseTransfer(models.Model):
             if trf.state == 'completed':
                 raise UserError(_('Cannot cancel a completed internal transfer.'))
             trf.write({'state': 'cancelled'})
+        return True
 
 
 class StocksenseTransferLine(models.Model):

@@ -25,7 +25,7 @@ class StocksenseDelivery(models.Model):
         ('assigned', 'Stock Reserved / Picked'),
         ('validated', 'Dispatched / Delivered'),
         ('cancelled', 'Cancelled'),
-    ], string='Status', default='draft', required=True, index=True, tracking=True)
+    ], string='Status', default='draft', required=True, index=True)
 
     line_ids = fields.One2many('stocksense.delivery.line', 'delivery_id', string='Delivery Items')
     total_qty = fields.Float(string='Total Dispatched Qty', compute='_compute_total_qty', store=True)
@@ -48,6 +48,7 @@ class StocksenseDelivery(models.Model):
             if not deliv.line_ids:
                 raise UserError(_('Please add at least one line item to this delivery order.'))
             deliv.write({'state': 'confirmed'})
+        return True
 
     def action_assign(self):
         """Check availability and mark as assigned."""
@@ -64,6 +65,7 @@ class StocksenseDelivery(models.Model):
                         % (line.product_id.name, deliv.location_src_id.complete_name, line.quantity_delivered, available)
                     )
             deliv.write({'state': 'assigned'})
+        return True
 
     def action_validate(self):
         """
@@ -126,7 +128,7 @@ class StocksenseDelivery(models.Model):
             )
 
             for anomaly in detected_anomalies:
-                self.env['stocksense.inventory.alert'].create({
+                self.env['stocksense.inventory.alert'].sudo().create({
                     'product_id': line.product_id.id,
                     'warehouse_id': self.warehouse_id.id,
                     'current_quantity': avail_stock,
@@ -143,7 +145,7 @@ class StocksenseDelivery(models.Model):
             )
 
             # 2. Immutable Ledger Entry
-            self.env['stocksense.stock.ledger'].create({
+            self.env['stocksense.stock.ledger'].sudo().create({
                 'product_id': line.product_id.id,
                 'warehouse_id': self.warehouse_id.id,
                 'location_src_id': self.location_src_id.id,
@@ -171,14 +173,14 @@ class StocksenseDelivery(models.Model):
                 'balance_after': new_bal,
                 'user': self.env.user.name
             }
-            self.env['stocksense.audit.trail'].append_audit_block(
+            self.env['stocksense.audit.trail'].sudo().append_audit_block(
                 event_type='DELIVERY_VALIDATED',
                 record_reference=self.name,
                 payload=audit_payload
             )
 
             # 4. Kafka Event Stream
-            self.env['stocksense.event.outbox'].queue_or_publish_event(
+            self.env['stocksense.event.outbox'].sudo().queue_or_publish_event(
                 topic=TOPIC_EVENTS,
                 event_type='DELIVERY_VALIDATED',
                 payload=audit_payload,
@@ -189,7 +191,7 @@ class StocksenseDelivery(models.Model):
             line.product_id.action_recompute_health()
             if line.product_id.total_stock <= line.product_id.min_stock_threshold:
                 sev = 'critical' if line.product_id.total_stock <= 0 else 'warning'
-                self.env['stocksense.inventory.alert'].create({
+                self.env['stocksense.inventory.alert'].sudo().create({
                     'product_id': line.product_id.id,
                     'warehouse_id': self.warehouse_id.id,
                     'current_quantity': line.product_id.total_stock,
@@ -198,7 +200,7 @@ class StocksenseDelivery(models.Model):
                     'reason': f"Stock depleted to {line.product_id.total_stock:.1f} units after dispatch of {line.quantity_delivered:.1f} units on {self.name} (Minimum Safety: {line.product_id.min_stock_threshold:.1f})."
                 })
                 # Emit Low Stock Alert to alerts topic
-                self.env['stocksense.event.outbox'].queue_or_publish_event(
+                self.env['stocksense.event.outbox'].sudo().queue_or_publish_event(
                     topic=TOPIC_ALERTS,
                     event_type='LOW_STOCK_DETECTED',
                     payload={
@@ -219,6 +221,7 @@ class StocksenseDelivery(models.Model):
             if deliv.state == 'validated':
                 raise UserError(_('Cannot cancel a validated delivery.'))
             deliv.write({'state': 'cancelled'})
+        return True
 
 
 class StocksenseDeliveryLine(models.Model):

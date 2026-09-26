@@ -43,9 +43,11 @@ class StocksenseInventoryAlert(models.Model):
             'state': 'acknowledged',
             'acknowledged_by': self.env.user.id
         })
+        return True
 
     def action_resolve(self):
         self.write({
             'state': 'resolved',
             'resolved_by': self.env.user.id
         })
+        return True
