@@ -137,49 +137,68 @@ def extract_document_fields(text_lines, full_text):
         tax_id = tax_match.group(1).strip()
 
     # 4. Invoice / Document Reference
-    ref_match = re.search(r'(?:Invoice\s*(?:#|No|Number)?|INV|PO|Ref|Challan\s*(?:#|No)?|Order\s*(?:#|No)?)[:\s]*([A-Z0-9\-_/]{3,20})', full_text, re.IGNORECASE)
+    ref_match = re.search(r'(?:Invoice(?:\s*(?:Number|#|No\.?))?|Inv(?:\s*(?:Number|#|No\.?))?|Bill(?:\s*(?:#|No\.?))?|PO(?:\s*(?:#|No\.?))?|Order(?:\s*(?:#|No\.?))?|Reference|Ref)[:\t ]+([A-Z0-9\-_/]{3,30})', full_text, re.IGNORECASE)
     if ref_match:
         reference = ref_match.group(1).strip()
     else:
-        # Fallback search for standalone pattern like INV-1042 or PO-9921
-        standalone_ref = re.search(r'\b(INV[-_]?[0-9]{3,8}|PO[-_]?[0-9]{3,8}|REC[-_]?[0-9]{3,8})\b', full_text, re.IGNORECASE)
+        # Fallback search for standalone pattern like INV-OCR-2026-001 or INV-1042 or PO-9921
+        standalone_ref = re.search(r'\b(INV[-_][A-Z0-9\-_]{2,20}|PO[-_]?[0-9]{3,8}|REC[-_]?[0-9]{3,8})\b', full_text, re.IGNORECASE)
         if standalone_ref:
             reference = standalone_ref.group(1).upper()
 
-    # 5. Date detection
-    date_patterns = [
-        r'(?:Date|Dated)[:\s]*([0-9]{4}[-/][0-9]{1,2}[-/][0-9]{1,2})',
-        r'(?:Date|Dated)[:\s]*([0-9]{1,2}[-/][0-9]{1,2}[-/][0-9]{2,4})',
-        r'\b([0-9]{4}[-/][0-9]{2}[-/][0-9]{2})\b',
-        r'\b([0-9]{1,2}[-/][0-9]{2}[-/][0-9]{4})\b'
-    ]
-    for pattern in date_patterns:
-        dmatch = re.search(pattern, full_text, re.IGNORECASE)
-        if dmatch:
-            raw_d = dmatch.group(1).replace('/', '-')
-            parts = raw_d.split('-')
-            try:
-                if len(parts[0]) == 4:
-                    # YYYY-MM-DD
-                    doc_date = f"{parts[0]}-{int(parts[1]):02d}-{int(parts[2]):02d}"
-                elif len(parts[2]) == 4:
-                    # DD-MM-YYYY
-                    doc_date = f"{parts[2]}-{int(parts[1]):02d}-{int(parts[0]):02d}"
-                elif len(parts[2]) == 2:
-                    doc_date = f"20{parts[2]}-{int(parts[1]):02d}-{int(parts[0]):02d}"
-                if doc_date:
-                    break
-            except Exception:
-                pass
+    # 5. Date detection (supports DD Month YYYY, YYYY-MM-DD, DD-MM-YYYY)
+    months_map = {
+        'january': 1, 'february': 2, 'march': 3, 'april': 4, 'may': 5, 'june': 6,
+        'july': 7, 'august': 8, 'september': 9, 'october': 10, 'november': 11, 'december': 12,
+        'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'jun': 6, 'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
+    }
+    m_text_date = re.search(r'(?:Invoice\s*Date|Date|Dated)?[:\s]*([0-9]{1,2})\s+([A-Za-z]{3,12})\s+([0-9]{4})', full_text, re.IGNORECASE)
+    if m_text_date:
+        d_day = int(m_text_date.group(1))
+        d_mon_str = m_text_date.group(2).lower()
+        d_year = int(m_text_date.group(3))
+        d_mon = months_map.get(d_mon_str)
+        if d_mon:
+            doc_date = f"{d_year:04d}-{d_mon:02d}-{d_day:02d}"
+
+    if not doc_date:
+        date_patterns = [
+            r'(?:Date|Dated)[:\s]*([0-9]{4}[-/][0-9]{1,2}[-/][0-9]{1,2})',
+            r'(?:Date|Dated)[:\s]*([0-9]{1,2}[-/][0-9]{1,2}[-/][0-9]{2,4})',
+            r'\b([0-9]{4}[-/][0-9]{2}[-/][0-9]{2})\b',
+            r'\b([0-9]{1,2}[-/][0-9]{2}[-/][0-9]{4})\b'
+        ]
+        for pattern in date_patterns:
+            dmatch = re.search(pattern, full_text, re.IGNORECASE)
+            if dmatch:
+                raw_d = dmatch.group(1).replace('/', '-')
+                parts = raw_d.split('-')
+                try:
+                    if len(parts[0]) == 4:
+                        # YYYY-MM-DD
+                        doc_date = f"{parts[0]}-{int(parts[1]):02d}-{int(parts[2]):02d}"
+                    elif len(parts[2]) == 4:
+                        # DD-MM-YYYY
+                        doc_date = f"{parts[2]}-{int(parts[1]):02d}-{int(parts[0]):02d}"
+                    elif len(parts[2]) == 2:
+                        doc_date = f"20{parts[2]}-{int(parts[1]):02d}-{int(parts[0]):02d}"
+                    if doc_date:
+                        break
+                except Exception:
+                    pass
 
     # 6. Partner / Supplier / Customer extraction
-    for idx, line in enumerate(text_lines[:8]):
-        m_partner = re.search(r'(?:Supplier|Vendor|Customer|Billed\s*To|Sold\s*By|From|To)[:\s]+([^,\n\r]+)', line, re.IGNORECASE)
-        if m_partner:
-            p_val = m_partner.group(1).strip()
-            if len(p_val) > 2 and not any(kw in p_val.lower() for kw in ['invoice', 'date', 'phone', 'total']):
-                partner_name = p_val
-                break
+    p_match = re.search(r'(?:Supplier\s*Name|Vendor\s*Name|Customer\s*Name|Company\s*Name)[:\s]+([^\n\r]+)', full_text, re.IGNORECASE)
+    if p_match:
+        partner_name = p_match.group(1).strip()
+    else:
+        for idx, line in enumerate(text_lines[:8]):
+            m_partner = re.search(r'(?:Supplier|Vendor|Customer|Billed\s*To|Sold\s*By|From|To)[:\s]+([^,\n\r]+)', line, re.IGNORECASE)
+            if m_partner:
+                p_val = m_partner.group(1).strip()
+                if len(p_val) > 2 and not any(kw in p_val.lower() for kw in ['invoice', 'date', 'phone', 'total', 'information', 'details']):
+                    partner_name = p_val
+                    break
 
     # If not explicitly prefixed, look at top lines (excluding invoice/header titles)
     if not partner_name:
@@ -193,58 +212,92 @@ def extract_document_fields(text_lines, full_text):
                 break
 
     # 7. Address extraction heuristics
-    addr_lines = []
-    for line in text_lines[1:10]:
-        lower = line.lower()
-        if any(term in lower for term in ['street', 'road', 'st.', 'rd.', 'ave', 'suite', 'floor', 'industrial', 'area', 'zone', 'city', 'pin', 'zip', 'box']):
-            addr_lines.append(line.strip())
-    if addr_lines:
-        address = ', '.join(addr_lines[:2])
+    addr_match = re.search(r'(?:Address|Street)[:\s]+([^\n\r]+)', full_text, re.IGNORECASE)
+    if addr_match:
+        address = addr_match.group(1).strip()
+    else:
+        addr_lines = []
+        for line in text_lines[1:10]:
+            lower = line.lower()
+            if any(term in lower for term in ['street', 'road', 'st.', 'rd.', 'ave', 'suite', 'floor', 'industrial', 'area', 'zone', 'city', 'pin', 'zip', 'box']):
+                addr_lines.append(line.strip())
+        if addr_lines:
+            address = ', '.join(addr_lines[:2])
 
     # 8. Product Line items extraction
-    # Looks for lines having SKU or Product descriptions combined with quantities
-    for line in text_lines:
+    # Supports both multiline tabular layout (PDF cells on sequential lines) and single-line layout
+    i = 0
+    while i < len(text_lines):
+        line = text_lines[i].strip()
         lower = line.lower()
-        # Skip header/summary lines
-        if any(kw in lower for kw in ['total', 'subtotal', 'tax', 'gst', 'vat', 'discount', 'payment', 'balance', 'terms', 'bank', 'due']):
+        if any(kw in lower for kw in ['total', 'subtotal', 'tax', 'gst', 'vat', 'discount', 'payment', 'balance', 'terms', 'bank', 'due', 'bill to', 'supplier info', 'warehouse:']):
+            i += 1
             continue
 
-        # Look for patterns like "Steel Rod 10mm QTY: 100", "BEAR-6204 50 units", "SKU: RAW-ST-001 Qty 25"
-        # Match SKU or description + number
+        # Check for multiline table row starting with SKU pattern (e.g. STEEL-ROD-10MM, BEARING-6204, IOT-SENSOR-V2)
+        sku_m = re.match(r'^([A-Z0-9]{3,}-[A-Z0-9\-_]{2,})$', line)
+        if sku_m and i + 1 < len(text_lines):
+            sku = sku_m.group(1).upper()
+            desc = ''
+            qty = 0.0
+            uom = 'Units'
+            price = 0.0
+            j = i + 1
+            consumed = 0
+            while j < len(text_lines) and consumed < 5:
+                nxt = text_lines[j].strip()
+                nxt_lower = nxt.lower()
+                if any(kw in nxt_lower for kw in ['subtotal', 'total', 'tax:']):
+                    break
+                if re.match(r'^[A-Z0-9]{3,}-[A-Z0-9\-_]{2,}$', nxt):
+                    break
+                qty_num_m = re.match(r'^([0-9]+(?:\.[0-9]+)?)$', nxt)
+                if qty_num_m and qty == 0.0:
+                    val = float(qty_num_m.group(1))
+                    if 0 < val < 100000 and val != 2026:
+                        qty = val
+                elif nxt_lower in ['units', 'pcs', 'kg', 'meters', 'nos', 'boxes', 'ea']:
+                    uom = nxt
+                elif re.match(r'^[0-9]+\.[0-9]{2}$', nxt) and qty > 0.0 and price == 0.0:
+                    price = float(nxt)
+                elif not desc and not qty_num_m and len(nxt) > 2:
+                    desc = nxt
+                j += 1
+                consumed += 1
+
+            if qty > 0:
+                detected_lines.append({
+                    'raw_description': desc or sku,
+                    'detected_sku': sku,
+                    'detected_qty': qty,
+                    'detected_uom': uom,
+                    'detected_price': price
+                })
+                i = j
+                continue
+
+        # Single-line format fallback: "Steel Rod 10mm QTY: 100", "BEAR-6204 50 units"
         qty_match = re.search(r'(?:Qty|Quantity|Units|Pcs|Count)?[:\s]*([0-9]+(?:\.[0-9]+)?)\s*(?:Units|Pcs|Kg|Meters|Nos|Boxes)?\b', line, re.IGNORECASE)
         sku_match = re.search(r'\b([A-Z0-9]{3,}-[A-Z0-9\-_]{2,})\b', line)
-
-        desc = line
-        qty = 0.0
-        sku = ''
-
-        if sku_match:
-            sku = sku_match.group(1).upper()
-
-        if qty_match:
+        if qty_match and sku_match:
             try:
                 candidate_qty = float(qty_match.group(1))
-                # Reasonable unit quantity filter (not 2026 for year, not 1042 for invoice #)
                 if 0 < candidate_qty < 100000 and candidate_qty != 2026:
-                    qty = candidate_qty
+                    sku = sku_match.group(1).upper()
+                    clean_desc = re.sub(r'(?:Qty|Quantity|Units|Pcs)?[:\s]*[0-9]+(?:\.[0-9]+)?', '', line, flags=re.IGNORECASE).strip()
+                    clean_desc = re.sub(r'[:#\-–]+$', '', clean_desc).strip()
+                    if clean_desc and not any(kw in clean_desc.lower() for kw in ['invoice', 'date', 'page', 'phone', 'vendor', 'supplier']):
+                        detected_lines.append({
+                            'raw_description': clean_desc or sku,
+                            'detected_sku': sku,
+                            'detected_qty': candidate_qty,
+                            'detected_uom': 'Units',
+                            'detected_price': 0.0
+                        })
             except Exception:
                 pass
 
-        # If line has SKU or significant text and quantity > 0
-        if qty > 0 and (sku or len(line) > 5):
-            # Clean description
-            clean_desc = re.sub(r'(?:Qty|Quantity|Units|Pcs)?[:\s]*[0-9]+(?:\.[0-9]+)?', '', line, flags=re.IGNORECASE).strip()
-            clean_desc = re.sub(r'[:#\-–]+$', '', clean_desc).strip()
-            if not clean_desc and sku:
-                clean_desc = sku
-            if clean_desc and not any(kw in clean_desc.lower() for kw in ['invoice', 'date', 'page', 'phone', 'vendor', 'supplier']):
-                detected_lines.append({
-                    'raw_description': clean_desc,
-                    'detected_sku': sku,
-                    'detected_qty': qty,
-                    'detected_uom': 'Units',
-                    'detected_price': 0.0
-                })
+        i += 1
 
     parsed = {
         'partner_name': partner_name,

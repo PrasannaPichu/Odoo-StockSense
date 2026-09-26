@@ -13,7 +13,14 @@ class StocksenseOcrDocument(models.Model):
     _description = 'StockSense Document Intake & Local OCR Review'
     _order = 'create_date desc, id desc'
 
-    name = fields.Char(string='Document Intake Ref', required=True, copy=False, readonly=True, index=True)
+    name = fields.Char(
+        string='Document Intake Ref',
+        required=True,
+        copy=False,
+        readonly=True,
+        index=True,
+        default=lambda self: self.env['ir.sequence'].next_by_code('stocksense.ocr.document') or _('New')
+    )
     document_type = fields.Selection([
         ('receipt', 'Supplier Goods Receipt / Invoice'),
         ('delivery', 'Customer Delivery Order / Dispatch'),
@@ -23,7 +30,7 @@ class StocksenseOcrDocument(models.Model):
     file_data = fields.Binary(string='Document Upload (PDF, PNG, JPG)', required=True, attachment=True)
     filename = fields.Char(string='Filename', required=True)
     mime_type = fields.Char(string='MIME Type')
-    file_size = fields.Integer(string='File Size (Bytes)', readonly=True)
+    file_size = fields.Integer(string='File Size (Bytes)', compute='_compute_file_size', store=True, readonly=True)
 
     state = fields.Selection([
         ('draft', 'Document Uploaded'),
@@ -60,17 +67,94 @@ class StocksenseOcrDocument(models.Model):
 
     line_ids = fields.One2many('stocksense.ocr.line', 'document_id', string='Detected Item Lines')
 
+    @api.model
+    def default_get(self, fields_list):
+        res = super(StocksenseOcrDocument, self).default_get(fields_list)
+        if 'name' in fields_list and (not res.get('name') or res.get('name') in (_('New'), 'New', '/')):
+            res['name'] = self.env['ir.sequence'].next_by_code('stocksense.ocr.document') or _('New')
+        return res
+
+    @api.depends('file_data')
+    def _compute_file_size(self):
+        for rec in self:
+            if rec.file_data:
+                try:
+                    data = rec.file_data
+                    if isinstance(data, str):
+                        raw_bytes = base64.b64decode(data.encode('utf-8'))
+                    elif isinstance(data, bytes):
+                        raw_bytes = base64.b64decode(data)
+                    else:
+                        raw_bytes = b''
+                    rec.file_size = len(raw_bytes)
+                except Exception:
+                    rec.file_size = len(rec.file_data) if rec.file_data else 0
+            else:
+                rec.file_size = 0
+
+    @api.onchange('file_data', 'filename')
+    def _onchange_file_data(self):
+        if self.file_data:
+            try:
+                data = self.file_data
+                if isinstance(data, str):
+                    raw_bytes = base64.b64decode(data.encode('utf-8'))
+                elif isinstance(data, bytes):
+                    raw_bytes = base64.b64decode(data)
+                else:
+                    raw_bytes = b''
+                self.file_size = len(raw_bytes)
+            except Exception:
+                self.file_size = len(self.file_data) if self.file_data else 0
+        else:
+            self.file_size = 0
+
+        if self.filename:
+            fn = self.filename.lower()
+            if fn.endswith('.pdf'):
+                self.mime_type = 'application/pdf'
+            elif fn.endswith('.png'):
+                self.mime_type = 'image/png'
+            elif fn.endswith(('.jpg', '.jpeg')):
+                self.mime_type = 'image/jpeg'
+            elif fn.endswith('.webp'):
+                self.mime_type = 'image/webp'
+
+    @api.constrains('file_data', 'file_size')
+    def _check_file_data_size(self):
+        for rec in self:
+            if rec.file_size > 10 * 1024 * 1024:
+                raise ValidationError(_('Uploaded document exceeds maximum allowed size (10 MB).'))
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
-            if not vals.get('name'):
-                vals['name'] = self.env['ir.sequence'].next_by_code('stocksense.ocr.document') or _('OCR-NEW')
-            if vals.get('file_data'):
-                raw_bytes = base64.b64decode(vals['file_data'])
-                vals['file_size'] = len(raw_bytes)
-                # Max 10MB limit enforcement
-                if vals['file_size'] > 10 * 1024 * 1024:
-                    raise ValidationError(_('Uploaded document exceeds maximum allowed size (10 MB).'))
+            if not vals.get('name') or vals.get('name') in (_('New'), 'New', _('OCR-NEW'), 'OCR-NEW', '/'):
+                vals['name'] = self.env['ir.sequence'].next_by_code('stocksense.ocr.document') or _('New')
+            if vals.get('file_data') and not vals.get('file_size'):
+                try:
+                    data = vals['file_data']
+                    if isinstance(data, str):
+                        raw_bytes = base64.b64decode(data.encode('utf-8'))
+                    elif isinstance(data, bytes):
+                        raw_bytes = base64.b64decode(data)
+                    else:
+                        raw_bytes = b''
+                    vals['file_size'] = len(raw_bytes)
+                except Exception:
+                    vals['file_size'] = len(vals['file_data'])
+            if vals.get('file_size', 0) > 10 * 1024 * 1024:
+                raise ValidationError(_('Uploaded document exceeds maximum allowed size (10 MB).'))
+            if vals.get('filename') and not vals.get('mime_type'):
+                fn = vals['filename'].lower()
+                if fn.endswith('.pdf'):
+                    vals['mime_type'] = 'application/pdf'
+                elif fn.endswith('.png'):
+                    vals['mime_type'] = 'image/png'
+                elif fn.endswith(('.jpg', '.jpeg')):
+                    vals['mime_type'] = 'image/jpeg'
+                elif fn.endswith('.webp'):
+                    vals['mime_type'] = 'image/webp'
         records = super(StocksenseOcrDocument, self).create(vals_list)
         for rec in records:
             # Audit log document ingestion
@@ -86,6 +170,23 @@ class StocksenseOcrDocument(models.Model):
                 }
             )
         return records
+
+    def write(self, vals):
+        if vals.get('file_data'):
+            try:
+                data = vals['file_data']
+                if isinstance(data, str):
+                    raw_bytes = base64.b64decode(data.encode('utf-8'))
+                elif isinstance(data, bytes):
+                    raw_bytes = base64.b64decode(data)
+                else:
+                    raw_bytes = b''
+                if len(raw_bytes) > 10 * 1024 * 1024:
+                    raise ValidationError(_('Uploaded document exceeds maximum allowed size (10 MB).'))
+                vals['file_size'] = len(raw_bytes)
+            except Exception:
+                pass
+        return super(StocksenseOcrDocument, self).write(vals)
 
     def action_process_ocr(self):
         """

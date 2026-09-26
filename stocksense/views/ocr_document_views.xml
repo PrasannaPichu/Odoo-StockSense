@@ -65,7 +65,7 @@
                 <sheet>
                     <div class="oe_title">
                         <label for="name" class="oe_edit_only"/>
-                        <h1><field name="name"/></h1>
+                        <h1><field name="name" readonly="1" force_save="1"/></h1>
                     </div>
 
                     <div class="alert alert-info" role="alert" invisible="state != 'extracted'">

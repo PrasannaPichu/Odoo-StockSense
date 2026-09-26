@@ -703,6 +703,97 @@ class TestStockSenseLiveIntegration(unittest.TestCase):
         self.assertGreater(res_all['kpis']['total_products'], 0)
         self.assertGreater(res_wh['kpis']['total_products'], 0)
 
+    def test_16_ocr_automatic_intake_reference_and_file_size_persistence(self):
+        """
+        Regression test:
+        1. default_get returns valid sequence reference starting with 'OCR/'
+        2. Uploaded document receives automatic intake reference without manual entry
+        3. Uploaded binary has non-zero size stored and computed
+        4. OCR processing succeeds with invoice reference, supplier, date, and matched lines
+        """
+        import base64
+        import re
+
+        # 1. Verify default_get provides the automatic sequence reference
+        defaults = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.ocr.document', 'default_get',
+            [['name', 'document_type', 'file_data', 'filename', 'file_size', 'state']]
+        )
+        self.assertIn('name', defaults, "default_get must return 'name' field")
+        self.assertTrue(bool(defaults['name']), "Document Intake Ref must not be blank")
+        self.assertTrue(
+            bool(re.match(r'^OCR/\d{4}/\d+$', defaults['name'])),
+            f"Reference '{defaults['name']}' must match sequence pattern OCR/YYYY/NNNN"
+        )
+
+        # 2. Upload actual PDF test invoice
+        pdf_fixture_path = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            'stocksense', 'static', 'StockSense_OCR_Test_Supplier_Invoice.pdf'
+        )
+        if not os.path.exists(pdf_fixture_path):
+            pdf_fixture_path = '/tmp/test_invoice.pdf'
+
+        with open(pdf_fixture_path, 'rb') as f:
+            pdf_bytes = f.read()
+
+        b64_pdf = base64.b64encode(pdf_bytes).decode('ascii')
+        doc_id = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.ocr.document', 'create',
+            [{
+                'document_type': 'receipt',
+                'filename': 'StockSense_OCR_Test_Supplier_Invoice.pdf',
+                'file_data': b64_pdf,
+            }]
+        )
+
+        # Read back document
+        doc = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.ocr.document', 'read',
+            [[doc_id]],
+            {'fields': ['name', 'file_size', 'state', 'filename', 'mime_type']}
+        )[0]
+
+        # 3. Assert automatic reference, non-zero file size, and correct state
+        self.assertTrue(bool(doc['name']), "Created document must have an automatic intake reference")
+        self.assertTrue(
+            bool(re.match(r'^OCR/\d{4}/\d+$', doc['name'])),
+            f"Created reference '{doc['name']}' must match sequence pattern OCR/YYYY/NNNN"
+        )
+        self.assertEqual(doc['file_size'], len(pdf_bytes), "file_size must equal uploaded binary byte length")
+        self.assertGreater(doc['file_size'], 0, "file_size must be non-zero")
+        self.assertEqual(doc['state'], 'draft')
+
+        # 4. Execute OCR processing (must not fail due to reference or binary)
+        success = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.ocr.document', 'action_process_ocr',
+            [[doc_id]]
+        )
+        self.assertTrue(success, "action_process_ocr must return True")
+
+        # Read back extracted details
+        doc_after = self.models.execute_kw(
+            ODOO_DB, self.uid, ODOO_PASS,
+            'stocksense.ocr.document', 'read',
+            [[doc_id]],
+            {'fields': [
+                'state', 'confidence', 'extracted_partner_name',
+                'extracted_reference', 'extracted_date', 'extracted_tax_id',
+                'line_ids'
+            ]}
+        )[0]
+
+        self.assertEqual(doc_after['state'], 'extracted', "State must transition to 'extracted' (Review & Verification Required)")
+        self.assertIn('Chennai Industrial', doc_after['extracted_partner_name'])
+        self.assertEqual(doc_after['extracted_reference'], 'INV-OCR-2026-001')
+        self.assertEqual(doc_after['extracted_date'], '2026-09-26')
+        self.assertEqual(doc_after['extracted_tax_id'], '33ABCDE1234F1Z5')
+        self.assertGreaterEqual(len(doc_after['line_ids']), 3, "All 3 invoice lines must be extracted")
+
 
 if __name__ == '__main__':
     unittest.main()
