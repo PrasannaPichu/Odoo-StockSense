@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_stocksense_quant_tree" model="ir.ui.view">
+        <field name="name">stocksense.quant.tree</field>
+        <field name="model">stocksense.quant</field>
+        <field name="arch" type="xml">
+            <tree string="Stock Quants" create="false" edit="false">
+                <field name="product_sku"/>
+                <field name="product_id"/>
+                <field name="warehouse_id"/>
+                <field name="location_id"/>
+                <field name="quantity" sum="Total Physical Stock"/>
+                <field name="reserved_quantity" sum="Total Reserved"/>
+                <field name="available_quantity" sum="Total Available"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_stocksense_quant_search" model="ir.ui.view">
+        <field name="name">stocksense.quant.search</field>
+        <field name="model">stocksense.quant</field>
+        <field name="arch" type="xml">
+            <search string="Search Quants">
+                <field name="product_id"/>
+                <field name="product_sku"/>
+                <field name="warehouse_id"/>
+                <field name="location_id"/>
+                <filter string="Positive Stock (&gt; 0)" name="filter_positive" domain="[('quantity', '&gt;', 0)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Product" name="group_product" context="{'group_by': 'product_id'}"/>
+                    <filter string="Warehouse" name="group_warehouse" context="{'group_by': 'warehouse_id'}"/>
+                    <filter string="Location" name="group_location" context="{'group_by': 'location_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_stocksense_quants" model="ir.actions.act_window">
+        <field name="name">Location Stock Quants</field>
+        <field name="res_model">stocksense.quant</field>
+        <field name="view_mode">tree</field>
+        <field name="search_view_id" ref="view_stocksense_quant_search"/>
+        <field name="context">{'search_default_filter_positive': 1}</field>
+    </record>
+
+    <menuitem id="menu_stocksense_quants_action"
+              name="Location Stock Quants"
+              parent="menu_stocksense_quants"
+              action="action_stocksense_quants"
+              sequence="10"/>
+</odoo>

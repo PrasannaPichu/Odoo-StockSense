@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <record model="ir.module.category" id="module_category_stocksense">
+            <field name="name">StockSense</field>
+            <field name="description">Event-driven inventory management and operational intelligence.</field>
+            <field name="sequence">20</field>
+        </record>
+
+        <record id="group_stocksense_user" model="res.groups">
+            <field name="name">Warehouse Staff</field>
+            <field name="category_id" ref="module_category_stocksense"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+            <field name="comment">Warehouse operators who can process receipts, deliveries, and transfers.</field>
+        </record>
+
+        <record id="group_stocksense_manager" model="res.groups">
+            <field name="name">Inventory Manager</field>
+            <field name="category_id" ref="module_category_stocksense"/>
+            <field name="implied_ids" eval="[(4, ref('group_stocksense_user'))]"/>
+            <field name="users" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
+            <field name="comment">Full administrative access to StockSense configuration, ledger, audit, and intelligence settings.</field>
+        </record>
+    </data>
+</odoo>

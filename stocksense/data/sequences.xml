@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Receipt Sequence -->
+        <record id="seq_stocksense_receipt" model="ir.sequence">
+            <field name="name">StockSense Receipt</field>
+            <field name="code">stocksense.receipt</field>
+            <field name="prefix">REC/%(year)s/</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <!-- Delivery Sequence -->
+        <record id="seq_stocksense_delivery" model="ir.sequence">
+            <field name="name">StockSense Delivery</field>
+            <field name="code">stocksense.delivery</field>
+            <field name="prefix">DEL/%(year)s/</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <!-- Internal Transfer Sequence -->
+        <record id="seq_stocksense_transfer" model="ir.sequence">
+            <field name="name">StockSense Transfer</field>
+            <field name="code">stocksense.transfer</field>
+            <field name="prefix">TRF/%(year)s/</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <!-- Inventory Adjustment Sequence -->
+        <record id="seq_stocksense_adjustment" model="ir.sequence">
+            <field name="name">StockSense Adjustment</field>
+            <field name="code">stocksense.adjustment</field>
+            <field name="prefix">ADJ/%(year)s/</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <!-- Stock Ledger Sequence -->
+        <record id="seq_stocksense_ledger" model="ir.sequence">
+            <field name="name">StockSense Ledger Entry</field>
+            <field name="code">stocksense.stock.ledger</field>
+            <field name="prefix">LEDG/%(year)s/</field>
+            <field name="padding">6</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <!-- Alert Sequence -->
+        <record id="seq_stocksense_alert" model="ir.sequence">
+            <field name="name">StockSense Alert</field>
+            <field name="code">stocksense.inventory.alert</field>
+            <field name="prefix">ALT/%(year)s/</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <!-- Audit Trail Sequence -->
+        <record id="seq_stocksense_audit" model="ir.sequence">
+            <field name="name">StockSense Audit Block</field>
+            <field name="code">stocksense.audit.trail</field>
+            <field name="prefix">AUDIT/%(year)s/</field>
+            <field name="padding">6</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+</odoo>

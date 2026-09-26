@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_stocksense_simulation_tree" model="ir.ui.view">
+        <field name="name">stocksense.simulation.scenario.tree</field>
+        <field name="model">stocksense.simulation.scenario</field>
+        <field name="arch" type="xml">
+            <tree string="What-If Scenarios">
+                <field name="name"/>
+                <field name="product_sku"/>
+                <field name="product_id"/>
+                <field name="scenario_type" widget="badge"/>
+                <field name="simulated_quantity"/>
+                <field name="current_stock"/>
+                <field name="projected_stock"/>
+                <field name="health_transition"/>
+                <field name="is_simulated" widget="boolean_toggle"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_stocksense_simulation_form" model="ir.ui.view">
+        <field name="name">stocksense.simulation.scenario.form</field>
+        <field name="model">stocksense.simulation.scenario</field>
+        <field name="arch" type="xml">
+            <form string="What-If Inventory Simulator">
+                <header>
+                    <button name="action_run_simulation" string="⚡ Calculate Sandboxed Projection" type="object" class="oe_highlight btn-lg"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-info" role="alert" style="margin-bottom: 20px;">
+                        <strong>Safe Sandboxed Simulation:</strong> Hypothetical scenarios execute purely in memory and <em>never mutate</em> actual warehouse stock quants or financial ledger entries.
+                    </div>
+
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only"/>
+                        <h1><field name="name" placeholder="e.g. Acme Corp Bulk 150 Unit Flash Order"/></h1>
+                    </div>
+
+                    <group>
+                        <group string="Hypothetical Operation Parameters">
+                            <field name="product_id"/>
+                            <field name="product_sku"/>
+                            <field name="scenario_type"/>
+                            <field name="simulated_quantity"/>
+                        </group>
+                        <group string="Safety &amp; Capacity Thresholds">
+                            <field name="min_threshold"/>
+                            <field name="max_threshold"/>
+                            <field name="is_simulated"/>
+                        </group>
+                    </group>
+
+                    <separator string="Scenario Comparison &amp; Impact Analysis" invisible="not is_simulated"/>
+
+                    <group invisible="not is_simulated">
+                        <group string="Current Physical Baseline">
+                            <field name="current_stock"/>
+                            <field name="current_health_status"/>
+                            <field name="current_health_score" widget="progressbar"/>
+                        </group>
+                        <group string="Projected Sandboxed Outcome">
+                            <field name="projected_stock" class="oe_bold"/>
+                            <field name="stock_delta"/>
+                            <field name="projected_health_status"/>
+                            <field name="projected_health_score" widget="progressbar"/>
+                            <field name="health_transition" class="oe_bold text-primary"/>
+                        </group>
+                    </group>
+
+                    <group invisible="not is_simulated">
+                        <group string="Operational Warnings &amp; Risks">
+                            <field name="warnings" readonly="1" nolabel="1"/>
+                        </group>
+                        <group string="Decision Support Recommendations">
+                            <field name="recommendations" readonly="1" nolabel="1"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_stocksense_what_if" model="ir.actions.act_window">
+        <field name="name">What-If Inventory Simulator</field>
+        <field name="res_model">stocksense.simulation.scenario</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_stocksense_what_if_action"
+              name="What-If Simulator"
+              parent="menu_stocksense_what_if"
+              action="action_stocksense_what_if"
+              sequence="10"/>
+</odoo>

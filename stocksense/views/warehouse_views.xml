@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Warehouse Views -->
+    <record id="view_stocksense_warehouse_tree" model="ir.ui.view">
+        <field name="name">stocksense.warehouse.tree</field>
+        <field name="model">stocksense.warehouse</field>
+        <field name="arch" type="xml">
+            <tree string="Warehouses">
+                <field name="code"/>
+                <field name="name"/>
+                <field name="total_stock"/>
+                <field name="sku_count"/>
+                <field name="critical_sku_count" decoration-danger="critical_sku_count &gt; 0"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_stocksense_warehouse_form" model="ir.ui.view">
+        <field name="name">stocksense.warehouse.form</field>
+        <field name="model">stocksense.warehouse</field>
+        <field name="arch" type="xml">
+            <form string="Warehouse">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" icon="fa-database" type="action" name="%(action_stocksense_products)d">
+                            <field name="total_stock" widget="statinfo" string="Total Items"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only"/>
+                        <h1><field name="name" placeholder="e.g. Central Distribution Hub"/></h1>
+                        <h3><field name="code" placeholder="WH-CODE"/></h3>
+                    </div>
+                    <group>
+                        <field name="address"/>
+                        <field name="active"/>
+                    </group>
+                    <notebook>
+                        <page string="Bays &amp; Storage Locations" name="locations">
+                            <field name="location_ids">
+                                <tree>
+                                    <field name="complete_name"/>
+                                    <field name="usage"/>
+                                    <field name="barcode"/>
+                                    <field name="total_quantity"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_stocksense_warehouses" model="ir.actions.act_window">
+        <field name="name">Warehouses</field>
+        <field name="res_model">stocksense.warehouse</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_stocksense_warehouses_action"
+              name="Warehouses"
+              parent="menu_stocksense_warehouses"
+              action="action_stocksense_warehouses"
+              sequence="10"/>
+
+    <!-- Category Views -->
+    <record id="view_stocksense_category_tree" model="ir.ui.view">
+        <field name="name">stocksense.product.category.tree</field>
+        <field name="model">stocksense.product.category</field>
+        <field name="arch" type="xml">
+            <tree string="Product Categories">
+                <field name="name"/>
+                <field name="parent_id"/>
+                <field name="product_count"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_stocksense_category_form" model="ir.ui.view">
+        <field name="name">stocksense.product.category.form</field>
+        <field name="model">stocksense.product.category</field>
+        <field name="arch" type="xml">
+            <form string="Product Category">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only"/>
+                        <h1><field name="name" placeholder="e.g. Raw Materials"/></h1>
+                    </div>
+                    <group>
+                        <field name="parent_id"/>
+                        <field name="product_count"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_stocksense_categories" model="ir.actions.act_window">
+        <field name="name">Product Categories</field>
+        <field name="res_model">stocksense.product.category</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_stocksense_categories_action"
+              name="Product Categories"
+              parent="menu_stocksense_categories"
+              action="action_stocksense_categories"
+              sequence="10"/>
+</odoo>

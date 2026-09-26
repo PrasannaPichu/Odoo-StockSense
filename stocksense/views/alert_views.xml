@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_stocksense_alert_tree" model="ir.ui.view">
+        <field name="name">stocksense.inventory.alert.tree</field>
+        <field name="model">stocksense.inventory.alert</field>
+        <field name="arch" type="xml">
+            <tree string="Inventory Alerts" decoration-danger="severity == 'critical'" decoration-warning="severity == 'warning'">
+                <field name="name"/>
+                <field name="detected_at"/>
+                <field name="product_sku"/>
+                <field name="product_id"/>
+                <field name="warehouse_id"/>
+                <field name="current_quantity"/>
+                <field name="threshold"/>
+                <field name="severity" widget="badge"
+                       decoration-danger="severity == 'critical'"
+                       decoration-warning="severity == 'warning'"
+                       decoration-info="severity == 'info'"/>
+                <field name="state" widget="badge"
+                       decoration-danger="state == 'new'"
+                       decoration-warning="state == 'acknowledged'"
+                       decoration-success="state == 'resolved'"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_stocksense_alert_form" model="ir.ui.view">
+        <field name="name">stocksense.inventory.alert.form</field>
+        <field name="model">stocksense.inventory.alert</field>
+        <field name="arch" type="xml">
+            <form string="Inventory Alert">
+                <header>
+                    <button name="action_acknowledge" string="Acknowledge Alert" type="object"
+                            invisible="state != 'new'" class="btn-warning"/>
+                    <button name="action_resolve" string="Mark as Resolved" type="object"
+                            invisible="state == 'resolved'" class="btn-success"/>
+                    <field name="state" widget="statusbar" statusbar_visible="new,acknowledged,resolved"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group string="Affected SKU">
+                            <field name="product_id"/>
+                            <field name="product_sku"/>
+                            <field name="warehouse_id"/>
+                            <field name="detected_at"/>
+                        </group>
+                        <group string="Metrics &amp; Severity">
+                            <field name="current_quantity"/>
+                            <field name="threshold"/>
+                            <field name="severity" widget="badge"
+                                   decoration-danger="severity == 'critical'"
+                                   decoration-warning="severity == 'warning'"/>
+                        </group>
+                    </group>
+                    <group string="Causal Diagnostic Explanation">
+                        <field name="reason"/>
+                    </group>
+                    <group string="Resolution Audit">
+                        <field name="acknowledged_by"/>
+                        <field name="resolved_by"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_stocksense_alert_search" model="ir.ui.view">
+        <field name="name">stocksense.inventory.alert.search</field>
+        <field name="model">stocksense.inventory.alert</field>
+        <field name="arch" type="xml">
+            <search string="Search Alerts">
+                <field name="name"/>
+                <field name="product_id"/>
+                <field name="product_sku"/>
+                <filter string="Active Alerts (New)" name="filter_new" domain="[('state', '=', 'new')]"/>
+                <filter string="Critical Severity" name="filter_critical" domain="[('severity', '=', 'critical')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Severity" name="group_severity" context="{'group_by': 'severity'}"/>
+                    <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="Product" name="group_product" context="{'group_by': 'product_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_stocksense_alerts" model="ir.actions.act_window">
+        <field name="name">Inventory Alerts</field>
+        <field name="res_model">stocksense.inventory.alert</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_stocksense_alert_search"/>
+        <field name="context">{'search_default_filter_new': 1}</field>
+    </record>
+
+    <menuitem id="menu_stocksense_alerts_action"
+              name="Inventory Alerts"
+              parent="menu_stocksense_alerts"
+              action="action_stocksense_alerts"
+              sequence="10"/>
+</odoo>

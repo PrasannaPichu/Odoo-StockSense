@@ -1,0 +1,11 @@
+FROM odoo:17.0
+
+USER root
+RUN pip3 install --no-cache-dir \
+    pandas \
+    numpy \
+    scipy \
+    kafka-python-ng \
+    requests
+
+USER odoo

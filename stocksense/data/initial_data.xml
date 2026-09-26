@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Product Categories -->
+        <record id="cat_raw_materials" model="stocksense.product.category">
+            <field name="name">Raw Materials</field>
+        </record>
+
+        <record id="cat_hardware" model="stocksense.product.category">
+            <field name="name">Hardware &amp; Fasteners</field>
+        </record>
+
+        <record id="cat_electronics" model="stocksense.product.category">
+            <field name="name">Electronics &amp; Sensors</field>
+        </record>
+
+        <record id="cat_finished_goods" model="stocksense.product.category">
+            <field name="name">Finished Goods</field>
+        </record>
+
+        <!-- Virtual Locations (Suppliers, Customers, Adjustments, Transit) -->
+        <record id="loc_virtual_supplier" model="stocksense.location">
+            <field name="name">Suppliers</field>
+            <field name="complete_name">Virtual Locations/Suppliers</field>
+            <field name="usage">supplier</field>
+            <field name="barcode">LOC-SUPPLIER</field>
+        </record>
+
+        <record id="loc_virtual_customer" model="stocksense.location">
+            <field name="name">Customers</field>
+            <field name="complete_name">Virtual Locations/Customers</field>
+            <field name="usage">customer</field>
+            <field name="barcode">LOC-CUSTOMER</field>
+        </record>
+
+        <record id="loc_virtual_inventory_loss" model="stocksense.location">
+            <field name="name">Inventory Loss &amp; Scrap</field>
+            <field name="complete_name">Virtual Locations/Inventory Loss</field>
+            <field name="usage">inventory_loss</field>
+            <field name="barcode">LOC-LOSS</field>
+        </record>
+
+        <record id="loc_virtual_transit" model="stocksense.location">
+            <field name="name">Inter-Warehouse Transit</field>
+            <field name="complete_name">Virtual Locations/Transit</field>
+            <field name="usage">transit</field>
+            <field name="barcode">LOC-TRANSIT</field>
+        </record>
+
+        <!-- Warehouses -->
+        <record id="warehouse_main" model="stocksense.warehouse">
+            <field name="name">Main Distribution Center</field>
+            <field name="code">WH-MAIN</field>
+            <field name="address">Plot 42, Tech Park, Industrial Corridor, Hyderabad</field>
+            <field name="active">True</field>
+        </record>
+
+        <record id="warehouse_north" model="stocksense.warehouse">
+            <field name="name">North Regional Hub</field>
+            <field name="code">WH-NORTH</field>
+            <field name="address">Sector 9, Logistics Zone, Medchal, Hyderabad</field>
+            <field name="active">True</field>
+        </record>
+
+        <!-- Physical Locations in Main Warehouse -->
+        <record id="loc_main_stock" model="stocksense.location">
+            <field name="name">Central Stock</field>
+            <field name="complete_name">WH-MAIN/Stock</field>
+            <field name="warehouse_id" ref="warehouse_main"/>
+            <field name="usage">internal</field>
+            <field name="barcode">LOC-MAIN-STOCK</field>
+        </record>
+
+        <record id="loc_main_rack_a" model="stocksense.location">
+            <field name="name">Rack A</field>
+            <field name="complete_name">WH-MAIN/Rack A</field>
+            <field name="warehouse_id" ref="warehouse_main"/>
+            <field name="parent_id" ref="loc_main_stock"/>
+            <field name="usage">internal</field>
+            <field name="barcode">LOC-MAIN-RACK-A</field>
+        </record>
+
+        <record id="loc_main_rack_b" model="stocksense.location">
+            <field name="name">Rack B</field>
+            <field name="complete_name">WH-MAIN/Rack B</field>
+            <field name="warehouse_id" ref="warehouse_main"/>
+            <field name="parent_id" ref="loc_main_stock"/>
+            <field name="usage">internal</field>
+            <field name="barcode">LOC-MAIN-RACK-B</field>
+        </record>
+
+        <record id="loc_main_production" model="stocksense.location">
+            <field name="name">Production Floor</field>
+            <field name="complete_name">WH-MAIN/Production Floor</field>
+            <field name="warehouse_id" ref="warehouse_main"/>
+            <field name="usage">internal</field>
+            <field name="barcode">LOC-MAIN-PROD</field>
+        </record>
+
+        <!-- Physical Locations in North Hub -->
+        <record id="loc_north_stock" model="stocksense.location">
+            <field name="name">Regional Stock</field>
+            <field name="complete_name">WH-NORTH/Stock</field>
+            <field name="warehouse_id" ref="warehouse_north"/>
+            <field name="usage">internal</field>
+            <field name="barcode">LOC-NORTH-STOCK</field>
+        </record>
+
+        <record id="loc_north_rack_c" model="stocksense.location">
+            <field name="name">Rack C</field>
+            <field name="complete_name">WH-NORTH/Rack C</field>
+            <field name="warehouse_id" ref="warehouse_north"/>
+            <field name="parent_id" ref="loc_north_stock"/>
+            <field name="usage">internal</field>
+            <field name="barcode">LOC-NORTH-RACK-C</field>
+        </record>
+
+        <!-- Initial Products -->
+        <record id="prod_steel_rod" model="stocksense.product">
+            <field name="name">High-Tensile Steel Rod 10mm</field>
+            <field name="sku">STEEL-ROD-10MM</field>
+            <field name="category_id" ref="cat_raw_materials"/>
+            <field name="uom_name">Units</field>
+            <field name="standard_price">25.00</field>
+            <field name="list_price">38.50</field>
+            <field name="min_stock_threshold">50.0</field>
+            <field name="max_stock_threshold">200.0</field>
+            <field name="preferred_location_id" ref="loc_main_rack_a"/>
+        </record>
+
+        <record id="prod_alum_sheet" model="stocksense.product">
+            <field name="name">Precision Aluminum Sheet 2mm</field>
+            <field name="sku">ALUM-SHEET-02</field>
+            <field name="category_id" ref="cat_raw_materials"/>
+            <field name="uom_name">Units</field>
+            <field name="standard_price">45.00</field>
+            <field name="list_price">68.00</field>
+            <field name="min_stock_threshold">30.0</field>
+            <field name="max_stock_threshold">150.0</field>
+            <field name="preferred_location_id" ref="loc_main_rack_b"/>
+        </record>
+
+        <record id="prod_bearing_6204" model="stocksense.product">
+            <field name="name">Deep Groove Ball Bearing 6204</field>
+            <field name="sku">BEARING-6204</field>
+            <field name="category_id" ref="cat_hardware"/>
+            <field name="uom_name">Units</field>
+            <field name="standard_price">8.50</field>
+            <field name="list_price">15.00</field>
+            <field name="min_stock_threshold">100.0</field>
+            <field name="max_stock_threshold">500.0</field>
+            <field name="preferred_location_id" ref="loc_main_rack_a"/>
+        </record>
+
+        <record id="prod_iot_sensor" model="stocksense.product">
+            <field name="name">Industrial IoT Telemetry Sensor</field>
+            <field name="sku">IOT-SENSOR-V2</field>
+            <field name="category_id" ref="cat_electronics"/>
+            <field name="uom_name">Units</field>
+            <field name="standard_price">120.00</field>
+            <field name="list_price">195.00</field>
+            <field name="min_stock_threshold">20.0</field>
+            <field name="max_stock_threshold">80.0</field>
+            <field name="preferred_location_id" ref="loc_north_rack_c"/>
+        </record>
+
+        <record id="prod_servo_motor" model="stocksense.product">
+            <field name="name">Brushless Servo Motor 750W</field>
+            <field name="sku">MOTOR-SERVO-01</field>
+            <field name="category_id" ref="cat_finished_goods"/>
+            <field name="uom_name">Units</field>
+            <field name="standard_price">280.00</field>
+            <field name="list_price">450.00</field>
+            <field name="min_stock_threshold">15.0</field>
+            <field name="max_stock_threshold">60.0</field>
+            <field name="preferred_location_id" ref="loc_main_production"/>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_stocksense_ledger_tree" model="ir.ui.view">
+        <field name="name">stocksense.stock.ledger.tree</field>
+        <field name="model">stocksense.stock.ledger</field>
+        <field name="arch" type="xml">
+            <tree string="Stock Ledger" create="false" edit="false" delete="false">
+                <field name="name"/>
+                <field name="date"/>
+                <field name="product_sku"/>
+                <field name="product_id"/>
+                <field name="warehouse_id"/>
+                <field name="operation_type" widget="badge"
+                       decoration-success="operation_type == 'receipt'"
+                       decoration-danger="operation_type == 'delivery'"
+                       decoration-info="operation_type == 'transfer'"
+                       decoration-warning="operation_type == 'adjustment'"/>
+                <field name="reference_document"/>
+                <field name="quantity_change"
+                       decoration-success="quantity_change &gt; 0"
+                       decoration-danger="quantity_change &lt; 0"/>
+                <field name="balance_before"/>
+                <field name="balance_after" font-weight="bold"/>
+                <field name="user_id"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_stocksense_ledger_form" model="ir.ui.view">
+        <field name="name">stocksense.stock.ledger.form</field>
+        <field name="model">stocksense.stock.ledger</field>
+        <field name="arch" type="xml">
+            <form string="Stock Ledger Entry" create="false" edit="false" delete="false">
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group string="Operational Context">
+                            <field name="date"/>
+                            <field name="operation_type"/>
+                            <field name="reference_document"/>
+                            <field name="user_id"/>
+                        </group>
+                        <group string="Physical Details">
+                            <field name="product_id"/>
+                            <field name="product_sku"/>
+                            <field name="warehouse_id"/>
+                            <field name="location_src_id"/>
+                            <field name="location_dest_id"/>
+                        </group>
+                    </group>
+                    <group string="Double-Entry Balance Verification">
+                        <field name="balance_before"/>
+                        <field name="quantity_change"
+                               decoration-success="quantity_change &gt; 0"
+                               decoration-danger="quantity_change &lt; 0"/>
+                        <field name="balance_after" class="oe_subtotal_footer_separator"/>
+                    </group>
+                    <group string="Audit Notes">
+                        <field name="notes"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_stocksense_ledger_search" model="ir.ui.view">
+        <field name="name">stocksense.stock.ledger.search</field>
+        <field name="model">stocksense.stock.ledger</field>
+        <field name="arch" type="xml">
+            <search string="Search Stock Ledger">
+                <field name="name"/>
+                <field name="product_id"/>
+                <field name="product_sku"/>
+                <field name="reference_document"/>
+                <field name="warehouse_id"/>
+                <separator/>
+                <filter string="Receipts" name="filter_receipt" domain="[('operation_type', '=', 'receipt')]"/>
+                <filter string="Deliveries" name="filter_delivery" domain="[('operation_type', '=', 'delivery')]"/>
+                <filter string="Transfers" name="filter_transfer" domain="[('operation_type', '=', 'transfer')]"/>
+                <filter string="Adjustments" name="filter_adjustment" domain="[('operation_type', '=', 'adjustment')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Product" name="group_product" context="{'group_by': 'product_id'}"/>
+                    <filter string="Operation Type" name="group_op_type" context="{'group_by': 'operation_type'}"/>
+                    <filter string="Warehouse" name="group_warehouse" context="{'group_by': 'warehouse_id'}"/>
+                    <filter string="Date" name="group_date" context="{'group_by': 'date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_stocksense_ledger" model="ir.actions.act_window">
+        <field name="name">Stock Ledger</field>
+        <field name="res_model">stocksense.stock.ledger</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_stocksense_ledger_search"/>
+    </record>
+
+    <menuitem id="menu_stocksense_ledger_action"
+              name="Stock Ledger"
+              parent="menu_stocksense_stock_ledger"
+              action="action_stocksense_ledger"
+              sequence="10"/>
+</odoo>

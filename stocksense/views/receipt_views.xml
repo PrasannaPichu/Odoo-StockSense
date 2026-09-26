@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_stocksense_receipt_tree" model="ir.ui.view">
+        <field name="name">stocksense.receipt.tree</field>
+        <field name="model">stocksense.receipt</field>
+        <field name="arch" type="xml">
+            <tree string="Goods Receipts" decoration-muted="state == 'cancelled'" decoration-success="state == 'validated'">
+                <field name="name"/>
+                <field name="date"/>
+                <field name="partner_id"/>
+                <field name="warehouse_id"/>
+                <field name="location_dest_id"/>
+                <field name="total_qty" sum="Total Received"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'validated'"
+                       decoration-info="state == 'confirmed'"
+                       decoration-warning="state == 'draft'"
+                       decoration-danger="state == 'cancelled'"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_stocksense_receipt_form" model="ir.ui.view">
+        <field name="name">stocksense.receipt.form</field>
+        <field name="model">stocksense.receipt</field>
+        <field name="arch" type="xml">
+            <form string="Goods Receipt">
+                <header>
+                    <button name="action_confirm" string="Confirm Order" type="object"
+                            invisible="state != 'draft'" class="oe_highlight"/>
+                    <button name="action_validate" string="Validate &amp; Increase Stock" type="object"
+                            invisible="state not in ['draft', 'confirmed']" class="btn-success"/>
+                    <button name="action_cancel" string="Cancel" type="object"
+                            invisible="state in ['validated', 'cancelled']"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,confirmed,validated"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only"/>
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group string="Source &amp; Logistics">
+                            <field name="partner_id" readonly="state == 'validated'"/>
+                            <field name="date" readonly="state == 'validated'"/>
+                        </group>
+                        <group string="Destination">
+                            <field name="warehouse_id" readonly="state == 'validated'"/>
+                            <field name="location_dest_id" readonly="state == 'validated'"/>
+                            <field name="total_qty"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Product Line Items" name="lines">
+                            <field name="line_ids" readonly="state == 'validated'">
+                                <tree editable="bottom">
+                                    <field name="product_id"/>
+                                    <field name="product_sku"/>
+                                    <field name="quantity_expected"/>
+                                    <field name="quantity_received"/>
+                                    <field name="uom_name"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Receiving Notes" name="notes">
+                            <field name="notes" placeholder="Delivery vehicle number, seal number, condition notes..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_stocksense_receipts" model="ir.actions.act_window">
+        <field name="name">Goods Receipts</field>
+        <field name="res_model">stocksense.receipt</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_stocksense_receipts_action"
+              name="Goods Receipts"
+              parent="menu_stocksense_receipts"
+              action="action_stocksense_receipts"
+              sequence="10"/>
+</odoo>

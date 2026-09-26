@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Client Action for Modern OWL Command Center -->
+    <record id="action_stocksense_command_center" model="ir.actions.client">
+        <field name="name">StockSense Command Center</field>
+        <field name="tag">stocksense_command_center_view</field>
+        <field name="target">current</field>
+    </record>
+
+    <menuitem id="menu_stocksense_command_center_action"
+              name="Command Center"
+              parent="menu_stocksense_command_center"
+              action="action_stocksense_command_center"
+              sequence="1"/>
+</odoo>

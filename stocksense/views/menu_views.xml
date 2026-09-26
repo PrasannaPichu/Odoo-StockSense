@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Top-level Application Menu -->
+    <menuitem id="menu_stocksense_root"
+              name="StockSense"
+              sequence="10"
+              web_icon="stocksense,static/description/icon.png"/>
+
+    <!-- 1. Command Center (Dashboard) -->
+    <menuitem id="menu_stocksense_command_center"
+              name="Command Center"
+              parent="menu_stocksense_root"
+              sequence="1"/>
+
+    <!-- 2. Operations Menu -->
+    <menuitem id="menu_stocksense_operations"
+              name="Operations"
+              parent="menu_stocksense_root"
+              sequence="10"/>
+
+    <menuitem id="menu_stocksense_receipts"
+              name="Goods Receipts"
+              parent="menu_stocksense_operations"
+              sequence="10"/>
+
+    <menuitem id="menu_stocksense_deliveries"
+              name="Delivery Orders"
+              parent="menu_stocksense_operations"
+              sequence="20"/>
+
+    <menuitem id="menu_stocksense_transfers"
+              name="Internal Transfers"
+              parent="menu_stocksense_operations"
+              sequence="30"/>
+
+    <menuitem id="menu_stocksense_adjustments"
+              name="Inventory Adjustments"
+              parent="menu_stocksense_operations"
+              sequence="40"/>
+
+    <!-- 3. Inventory & Traceability Menu -->
+    <menuitem id="menu_stocksense_inventory"
+              name="Inventory &amp; Traceability"
+              parent="menu_stocksense_root"
+              sequence="20"/>
+
+    <menuitem id="menu_stocksense_products"
+              name="Products &amp; SKUs"
+              parent="menu_stocksense_inventory"
+              sequence="10"/>
+
+    <menuitem id="menu_stocksense_quants"
+              name="Location Stock Quants"
+              parent="menu_stocksense_inventory"
+              sequence="20"/>
+
+    <menuitem id="menu_stocksense_stock_ledger"
+              name="Stock Ledger"
+              parent="menu_stocksense_inventory"
+              sequence="30"/>
+
+    <menuitem id="menu_stocksense_outbox"
+              name="Event Streaming Outbox"
+              parent="menu_stocksense_inventory"
+              sequence="40"/>
+
+    <!-- 4. Operational Intelligence Menu -->
+    <menuitem id="menu_stocksense_intelligence"
+              name="Operational Intelligence"
+              parent="menu_stocksense_root"
+              sequence="30"/>
+
+    <menuitem id="menu_stocksense_alerts"
+              name="Inventory Alerts"
+              parent="menu_stocksense_intelligence"
+              sequence="10"/>
+
+    <menuitem id="menu_stocksense_what_if"
+              name="What-If Simulator"
+              parent="menu_stocksense_intelligence"
+              sequence="20"/>
+
+    <menuitem id="menu_stocksense_audit_trail"
+              name="Tamper-Evident Audit Trail"
+              parent="menu_stocksense_intelligence"
+              sequence="30"/>
+
+    <!-- 5. Configuration Menu -->
+    <menuitem id="menu_stocksense_configuration"
+              name="Configuration"
+              parent="menu_stocksense_root"
+              sequence="90"
+              groups="stocksense.group_stocksense_manager"/>
+
+    <menuitem id="menu_stocksense_warehouses"
+              name="Warehouses"
+              parent="menu_stocksense_configuration"
+              sequence="10"/>
+
+    <menuitem id="menu_stocksense_locations"
+              name="Locations &amp; Bays"
+              parent="menu_stocksense_configuration"
+              sequence="20"/>
+
+    <menuitem id="menu_stocksense_categories"
+              name="Product Categories"
+              parent="menu_stocksense_configuration"
+              sequence="30"/>
+</odoo>

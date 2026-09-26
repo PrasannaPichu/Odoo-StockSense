@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Tamper-Evident Audit Trail Views -->
+    <record id="view_stocksense_audit_tree" model="ir.ui.view">
+        <field name="name">stocksense.audit.trail.tree</field>
+        <field name="model">stocksense.audit.trail</field>
+        <field name="arch" type="xml">
+            <tree string="Tamper-Evident Hash-Chained Audit Trail" create="false" edit="false" delete="false">
+                <field name="sequence_number"/>
+                <field name="timestamp"/>
+                <field name="event_type"/>
+                <field name="record_reference"/>
+                <field name="previous_hash"/>
+                <field name="current_hash"/>
+                <field name="is_verified" widget="boolean_toggle"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_stocksense_audit_form" model="ir.ui.view">
+        <field name="name">stocksense.audit.trail.form</field>
+        <field name="model">stocksense.audit.trail</field>
+        <field name="arch" type="xml">
+            <form string="Audit Block" create="false" edit="false" delete="false">
+                <header>
+                    <button name="action_verify_chain" string="Verify Forensic Chain Integrity" type="object" class="oe_highlight"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>Block #<field name="sequence_number"/> — <field name="event_type"/></h1>
+                        <h3>Ref: <field name="record_reference"/></h3>
+                    </div>
+                    <group>
+                        <group string="Cryptographic Signatures">
+                            <field name="timestamp"/>
+                            <field name="previous_hash"/>
+                            <field name="current_hash"/>
+                            <field name="is_verified"/>
+                        </group>
+                    </group>
+                    <group string="Audited Canonical Payload (Immutable)">
+                        <field name="payload_json" widget="text"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_stocksense_audit_trail" model="ir.actions.act_window">
+        <field name="name">Tamper-Evident Audit Trail</field>
+        <field name="res_model">stocksense.audit.trail</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_stocksense_audit_trail_action"
+              name="Tamper-Evident Audit Trail"
+              parent="menu_stocksense_audit_trail"
+              action="action_stocksense_audit_trail"
+              sequence="10"/>
+
+    <!-- Event Streaming Outbox Views -->
+    <record id="view_stocksense_outbox_tree" model="ir.ui.view">
+        <field name="name">stocksense.event.outbox.tree</field>
+        <field name="model">stocksense.event.outbox</field>
+        <field name="arch" type="xml">
+            <tree string="Event Streaming Outbox" create="false" edit="false">
+                <field name="create_date" string="Queued At"/>
+                <field name="event_id"/>
+                <field name="event_type"/>
+                <field name="topic"/>
+                <field name="partition_key"/>
+                <field name="status" widget="badge"
+                       decoration-success="status == 'published'"
+                       decoration-warning="status == 'pending'"
+                       decoration-danger="status == 'failed'"/>
+                <field name="retry_count"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_stocksense_outbox_form" model="ir.ui.view">
+        <field name="name">stocksense.event.outbox.form</field>
+        <field name="model">stocksense.event.outbox</field>
+        <field name="arch" type="xml">
+            <form string="Outbox Event" create="false" edit="false">
+                <header>
+                    <button name="action_retry_outbox" string="Retry Streaming to Kafka" type="object"
+                            invisible="status == 'published'" class="oe_highlight"/>
+                    <field name="status" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="event_id"/></h1>
+                        <h3><field name="event_type"/></h3>
+                    </div>
+                    <group>
+                        <group string="Kafka Topic &amp; Routing">
+                            <field name="topic"/>
+                            <field name="partition_key"/>
+                            <field name="create_date"/>
+                        </group>
+                        <group string="Delivery Telemetry">
+                            <field name="retry_count"/>
+                            <field name="last_error"/>
+                        </group>
+                    </group>
+                    <group string="Payload Envelope">
+                        <field name="payload_json"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_stocksense_outbox" model="ir.actions.act_window">
+        <field name="name">Event Streaming Outbox</field>
+        <field name="res_model">stocksense.event.outbox</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_stocksense_outbox_action"
+              name="Event Streaming Outbox"
+              parent="menu_stocksense_outbox"
+              action="action_stocksense_outbox"
+              sequence="10"/>
+</odoo>

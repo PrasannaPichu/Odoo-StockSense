@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_stocksense_location_tree" model="ir.ui.view">
+        <field name="name">stocksense.location.tree</field>
+        <field name="model">stocksense.location</field>
+        <field name="arch" type="xml">
+            <tree string="Locations &amp; Bays">
+                <field name="complete_name"/>
+                <field name="warehouse_id"/>
+                <field name="usage" widget="badge"/>
+                <field name="barcode"/>
+                <field name="total_quantity"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_stocksense_location_form" model="ir.ui.view">
+        <field name="name">stocksense.location.form</field>
+        <field name="model">stocksense.location</field>
+        <field name="arch" type="xml">
+            <form string="Location">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only"/>
+                        <h1><field name="name" placeholder="e.g. Rack A / Shelf 2"/></h1>
+                        <h3><field name="complete_name" readonly="1"/></h3>
+                    </div>
+                    <group>
+                        <group string="Hierarchy">
+                            <field name="warehouse_id"/>
+                            <field name="parent_id"/>
+                            <field name="usage"/>
+                        </group>
+                        <group string="Logistics Details">
+                            <field name="barcode"/>
+                            <field name="total_quantity"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Current Stock at this Location" name="quants">
+                            <field name="quant_ids" readonly="1">
+                                <tree>
+                                    <field name="product_sku"/>
+                                    <field name="product_id"/>
+                                    <field name="quantity" sum="Total"/>
+                                    <field name="available_quantity"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_stocksense_locations" model="ir.actions.act_window">
+        <field name="name">Locations &amp; Bays</field>
+        <field name="res_model">stocksense.location</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_stocksense_locations_action"
+              name="Locations &amp; Bays"
+              parent="menu_stocksense_locations"
+              action="action_stocksense_locations"
+              sequence="10"/>
+</odoo>

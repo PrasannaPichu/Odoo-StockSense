@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Product Tree View -->
+    <record id="view_stocksense_product_tree" model="ir.ui.view">
+        <field name="name">stocksense.product.tree</field>
+        <field name="model">stocksense.product</field>
+        <field name="arch" type="xml">
+            <tree string="Products &amp; SKUs"
+                  decoration-success="health_status == 'healthy'"
+                  decoration-warning="health_status == 'attention'"
+                  decoration-danger="health_status == 'critical'">
+                <field name="sku"/>
+                <field name="name"/>
+                <field name="category_id"/>
+                <field name="total_stock"/>
+                <field name="available_stock"/>
+                <field name="uom_name"/>
+                <field name="min_stock_threshold"/>
+                <field name="health_score" widget="progressbar"/>
+                <field name="health_status" widget="badge"
+                       decoration-success="health_status == 'healthy'"
+                       decoration-warning="health_status == 'attention'"
+                       decoration-danger="health_status == 'critical'"/>
+                <field name="stock_valuation" widget="monetary" sum="Total Asset Value"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Product Form View -->
+    <record id="view_stocksense_product_form" model="ir.ui.view">
+        <field name="name">stocksense.product.form</field>
+        <field name="model">stocksense.product</field>
+        <field name="arch" type="xml">
+            <form string="Product">
+                <header>
+                    <button name="action_recompute_health" string="Re-Evaluate Health" type="object" class="oe_highlight"/>
+                    <button name="action_open_simulator" string="Run What-If Simulation" type="object" class="btn-secondary"/>
+                    <button name="action_view_stock_ledger" string="Stock Ledger History" type="object" class="btn-info"/>
+                    <field name="health_status" widget="statusbar" statusbar_visible="healthy,attention,critical"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" icon="fa-cubes" type="object" name="action_view_stock_ledger">
+                            <field name="total_stock" widget="statinfo" string="On Hand"/>
+                        </button>
+                        <button class="oe_stat_button" icon="fa-heartbeat" type="object" name="action_recompute_health">
+                            <field name="health_score" widget="statinfo" string="Health Index"/>
+                        </button>
+                    </div>
+
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only"/>
+                        <h1><field name="name" placeholder="e.g. High-Tensile Steel Rod 10mm"/></h1>
+                        <h3><field name="sku" placeholder="SKU-XXXX-YY"/></h3>
+                    </div>
+
+                    <group>
+                        <group string="Categorization &amp; Pricing">
+                            <field name="category_id"/>
+                            <field name="uom_name"/>
+                            <field name="standard_price" widget="monetary"/>
+                            <field name="list_price" widget="monetary"/>
+                            <field name="stock_valuation" widget="monetary"/>
+                        </group>
+                        <group string="Safety &amp; Storage Thresholds">
+                            <field name="min_stock_threshold"/>
+                            <field name="max_stock_threshold"/>
+                            <field name="preferred_location_id"/>
+                            <field name="days_of_inventory"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Explainable Intelligence &amp; Diagnostics" name="health_diagnostics">
+                            <group>
+                                <field name="health_reasons" readonly="1" string="Causal Diagnostic Factors"/>
+                            </group>
+                        </page>
+
+                        <page string="Stock by Location" name="location_quants">
+                            <field name="quant_ids" readonly="1">
+                                <tree>
+                                    <field name="warehouse_id"/>
+                                    <field name="location_id"/>
+                                    <field name="quantity" sum="Total"/>
+                                    <field name="reserved_quantity"/>
+                                    <field name="available_quantity"/>
+                                </tree>
+                            </field>
+                        </page>
+
+                        <page string="Recent Ledger Entries" name="recent_ledger">
+                            <field name="ledger_ids" readonly="1">
+                                <tree limit="10">
+                                    <field name="name"/>
+                                    <field name="date"/>
+                                    <field name="operation_type"/>
+                                    <field name="reference_document"/>
+                                    <field name="quantity_change"
+                                           decoration-success="quantity_change &gt; 0"
+                                           decoration-danger="quantity_change &lt; 0"/>
+                                    <field name="balance_after"/>
+                                    <field name="user_id"/>
+                                </tree>
+                            </field>
+                        </page>
+
+                        <page string="Active Alerts" name="product_alerts">
+                            <field name="alert_ids" readonly="1">
+                                <tree>
+                                    <field name="name"/>
+                                    <field name="detected_at"/>
+                                    <field name="severity" widget="badge"
+                                           decoration-danger="severity == 'critical'"
+                                           decoration-warning="severity == 'warning'"
+                                           decoration-info="severity == 'info'"/>
+                                    <field name="reason"/>
+                                    <field name="state" widget="badge"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Product Search View -->
+    <record id="view_stocksense_product_search" model="ir.ui.view">
+        <field name="name">stocksense.product.search</field>
+        <field name="model">stocksense.product</field>
+        <field name="arch" type="xml">
+            <search string="Search Products">
+                <field name="name"/>
+                <field name="sku"/>
+                <field name="category_id"/>
+                <separator/>
+                <filter string="Critical Risk" name="filter_critical" domain="[('health_status', '=', 'critical')]"/>
+                <filter string="Attention Needed" name="filter_attention" domain="[('health_status', '=', 'attention')]"/>
+                <filter string="Healthy" name="filter_healthy" domain="[('health_status', '=', 'healthy')]"/>
+                <separator/>
+                <filter string="Low Stock (&lt; Min)" name="filter_low_stock" domain="[('total_stock', '&lt;=', 10.0)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Category" name="group_category" context="{'group_by': 'category_id'}"/>
+                    <filter string="Health Status" name="group_health" context="{'group_by': 'health_status'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Product Action -->
+    <record id="action_stocksense_products" model="ir.actions.act_window">
+        <field name="name">Products &amp; SKUs</field>
+        <field name="res_model">stocksense.product</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_stocksense_product_search"/>
+        <field name="context">{'search_default_filter_critical': 0}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Register your first inventory product or raw material SKU!
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_stocksense_products_action"
+              name="Products &amp; SKUs"
+              parent="menu_stocksense_products"
+              action="action_stocksense_products"
+              sequence="10"/>
+</odoo>
